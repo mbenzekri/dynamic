@@ -18,35 +18,24 @@ AJV.addFormat("uri-reference", /./)
 AJV.addFormat("uri", /./)
 AJV.addFormat("regex", /./)
 
-import { AnyJson, DynJson, TYPE, META, SchemaDefinition, JsonMap, isEmpty } from "./type"
+import { AnyJson, DynJson, TYPE, META, SchemaDefinition, JsonMap, isEmpty } from "./types"
 import { DynValue, JsonCopy, walkSchema } from "./utils"
-
-
-function compileSchemaType(schema: SchemaDefinition) {
-    if (Array.isArray(schema.type)) {
-        schema.main = schema.type.find(t => t != "null") ?? "string"
-        schema.nullable = schema.type.some(t => t == "null")
-    } else {
-        schema.main = schema.type
-        schema.nullable = schema.type == "null"
-    }
-}
+import { compileSchemaType } from "./compiler"
 
 export class Dynamic {
     readonly data: DynJson
-    readonly userdata: any
+    readonly schema: AnyJson
+    readonly shared: any
     readonly options: AnyJson
     private readonly validateFunc: (json: any) => boolean
-    constructor(schemaJson: AnyJson | string, dataJson: AnyJson | string, userdata: any = undefined, options: AnyJson | string = {}) {
-        schemaJson = typeof schemaJson == "string" ? JSON.parse(schemaJson) : JsonCopy(schemaJson)
-        dataJson = typeof dataJson == "string" ? JSON.parse(dataJson) : dataJson
-        options = typeof options == "string" ? JSON.parse(options) : JsonCopy(options)
-        this.userdata = userdata
-        this.options = options
+    constructor(schemaJson: AnyJson | string, dataJson: AnyJson | string, shared: any = undefined, options: AnyJson | string = {}) {
+        this.schema = typeof schemaJson == "string" ? JSON.parse(schemaJson) : JsonCopy(schemaJson)
+        this.shared = shared
+        this.options = typeof options == "string" ? JSON.parse(options) : JsonCopy(options)
         const compiledSchema = this.compileSchema(schemaJson)
         if (!compiledSchema) throw Error(this.validateErrors("Invalid Schema")?.join("\n"))
         this.validateFunc = AJV.compile(schemaJson as AnySchema)
-        this.data = DynValue(dataJson, compiledSchema)
+        this.data = DynValue(typeof dataJson == "string" ? JSON.parse(dataJson) : dataJson, compiledSchema)
     }
 
     compileSchema(schemaJson: AnyJson) {

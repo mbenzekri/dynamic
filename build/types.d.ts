@@ -4,12 +4,20 @@ export interface JsonMap {
 }
 export interface JsonArray extends Array<AnyJson> {
 }
-declare type SchemaPrimitive = "array" | "boolean" | "integer" | "null" | "number" | "object" | "string";
+export declare type SchemaPrimitive = "array" | "boolean" | "integer" | "null" | "number" | "object" | "string";
 export declare function isPrimitive(value: string | DynJson): boolean;
 export declare function isComposed(value: string | DynJson): boolean;
 export declare function isEmpty(value: string | DynJson): boolean;
 export declare function emptyValue(schema: SchemaDefinition): null | undefined;
 declare type SchemaType = SchemaPrimitive | SchemaPrimitive[];
+export declare type DynContext = DynMetadata & {
+    value: DynJson;
+};
+export declare type DerefFunc = (this: DynContext, string: string, kind: "value" | "summary" | "schema") => DynJson;
+export declare type ExprFunc = (this: DynContext) => any;
+interface DynFunc {
+    eval(value: DynJson): any;
+}
 export declare type SchemaDefinition = {
     type: SchemaType;
     $id?: string;
@@ -62,20 +70,20 @@ export declare type SchemaDefinition = {
     oneOf?: SchemaDefinition[];
     not?: SchemaDefinition;
     pointer: string;
+    parent?: SchemaDefinition;
+    main: SchemaPrimitive;
     composed: boolean;
     isA: boolean;
     nullable: boolean;
     temporary?: boolean;
-    main: SchemaPrimitive;
-    parent?: SchemaDefinition;
     summary?: string;
     isEnum: boolean;
-    refTo: string;
-    [name: symbol]: Function;
+    reference: string;
+    [name: symbol]: DynFunc;
 };
 export declare type DynKey = number | string;
 export declare type DynMetadata = {
-    userdata: any;
+    shared: any;
     pointer: string;
     schema: SchemaDefinition;
     root: DynJson;
@@ -119,12 +127,5 @@ declare type WalkDataAction = (data: DynJson, schema: SchemaDefinition, pdata?: 
 export declare type WalkDataActions = WalkDataAction[];
 declare type WalkSchemaAction = (schema: SchemaDefinition, parent?: SchemaDefinition, propname?: string) => void;
 export declare type WalkSchemaActions = WalkSchemaAction[];
-export declare type DynContext = {
-    value: DynJson;
-    root: DynJson;
-    schema: SchemaDefinition;
-    key?: DynKey;
-    userdata: any;
-};
 export {};
-//# sourceMappingURL=type.d.ts.map
+//# sourceMappingURL=types.d.ts.map

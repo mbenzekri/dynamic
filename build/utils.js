@@ -1,5 +1,5 @@
-import { emptyValue, isEmpty } from "./type";
-import { TYPE, META } from "./type";
+import { emptyValue, isEmpty } from "./types";
+import { TYPE, META } from "./types";
 export function JsonType(value) {
     if (typeof value == "number")
         return "number";
@@ -32,11 +32,11 @@ function splitPointer(pointer) {
     }
     throw (`Incorrect pointer syntax "${pointer}" must be "#/prop1/prop2/..." or "<number>/prop1/prop2/..."`);
 }
-export function pointerSchema(parent, propname) {
+function pointerSchema(parent, propname) {
     var _a;
     return `${(_a = parent === null || parent === void 0 ? void 0 : parent.pointer) !== null && _a !== void 0 ? _a : '#'}${propname ? `/${propname}` : ''}`;
 }
-export function pointerData(parent, key) {
+function pointerData(parent, key) {
     var _a;
     return `${(_a = parent === null || parent === void 0 ? void 0 : parent[META].pointer) !== null && _a !== void 0 ? _a : '#'}${key != null ? `/${key}` : ''}`;
 }
@@ -217,13 +217,13 @@ export function calculateSummary(schema, value, $f) {
     if (schema == null || isEmpty(value))
         return '~';
     if (schema.summary)
-        return schema[Symbol('summary')](schema, value, $f);
+        return schema[Symbol('summary')].eval(value);
     if (schema.isEnum && schema.oneOf)
         return String((_b = (_a = schema.oneOf.find((item) => item.const === value)) === null || _a === void 0 ? void 0 : _a.title) !== null && _b !== void 0 ? _b : value);
     if (schema.isEnum && schema.anyOf)
         return String((_d = (_c = schema.anyOf.find((item) => item.const === value)) === null || _c === void 0 ? void 0 : _c.title) !== null && _d !== void 0 ? _d : value);
-    if (schema.refTo) {
-        const refenum = schema[Symbol('refTo')](schema, value, $f);
+    if (schema.reference) {
+        const refenum = schema[Symbol('reference')].eval(value);
         if (refenum && refenum.refname && Array.isArray(refenum.refarray)) {
             const refname = (_e = refenum === null || refenum === void 0 ? void 0 : refenum.refname) !== null && _e !== void 0 ? _e : 'id';
             const refarray = refenum === null || refenum === void 0 ? void 0 : refenum.refarray;
@@ -250,34 +250,26 @@ export function calculateSummary(schema, value, $f) {
     }
     return String(value);
 }
-var ResolveType;
-(function (ResolveType) {
-    ResolveType[ResolveType["value"] = 0] = "value";
-    ResolveType[ResolveType["summary"] = 1] = "summary";
-    ResolveType[ResolveType["schema"] = 2] = "schema";
-})(ResolveType || (ResolveType = {}));
-function deref(ctx) {
-    return (pointer, resolveType) => {
-        pointer = typeof pointer == "string" ? pointer : "#";
-        resolveType = Number.isInteger(ResolveType.value) ? resolveType : 0;
-        const value = valueOf(pointer, ctx.root, ctx.value);
-        if (value == null)
-            return;
-        switch (resolveType) {
-            case ResolveType.value: return value;
-            case ResolveType.summary: return calculateSummary(value[META].schema, value, deref(ctx));
-            case ResolveType.schema: return value === null || value === void 0 ? void 0 : value[META].schema;
-        }
-    };
-}
-export function evalExpr(attribute, value, userdata) {
-    const schema = value[META].schema;
-    const func = schema[Symbol(attribute)];
-    const root = value[META].root;
-    const key = value[META].key;
-    const ctx = { value, root, schema, key, userdata };
-    if (typeof func != "function")
+export const deref = function (pointer, kind = "value") {
+    const value = valueOf(pointer, this.root, this.value);
+    if (value == null)
         return;
-    return func(schema, value, parent, key, deref(ctx), userdata);
+    switch (kind) {
+        case "value": return value;
+        case "summary": return calculateSummary(value[META].schema, value, deref.bind(this));
+        case "schema": return value === null || value === void 0 ? void 0 : value[META].schema;
+    }
+};
+export class DynFunc {
+    constructor(expr, type) {
+        this.expr = expr;
+        this.type = type;
+    }
+    eval(value) {
+        var _a;
+        const context = Object.assign({}, value[META]);
+        context.value = value;
+        return (_a = this.func) === null || _a === void 0 ? void 0 : _a.call(context);
+    }
 }
 //# sourceMappingURL=utils.js.map

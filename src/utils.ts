@@ -1,5 +1,5 @@
-import { DynJson, DynUndef, DynNull, DynNumber, DynBoolean, DynString, DynObject, DynArray, DynKey, emptyValue, DynContext, isEmpty } from "./type"
-import { TYPE, META, AnyJson, SchemaDefinition, WalkDataActions, WalkSchemaActions } from "./type"
+import { DynJson, DynUndef, DynNull, DynNumber, DynBoolean, DynString, DynObject, DynArray, DynKey, emptyValue, DynContext, isEmpty, ExprFunc, DerefFunc, SchemaPrimitive } from "./types"
+import { TYPE, META, AnyJson, SchemaDefinition, WalkDataActions, WalkSchemaActions } from "./types"
 
 export function JsonType(value: AnyJson) {
     if (typeof value == "number") return "number"
@@ -30,11 +30,11 @@ function splitPointer(pointer: string) {
     throw(`Incorrect pointer syntax "${pointer}" must be "#/prop1/prop2/..." or "<number>/prop1/prop2/..."`)
 }
 
-export function pointerSchema(parent?: SchemaDefinition, propname?: string): string {
+function pointerSchema(parent?: SchemaDefinition, propname?: string): string {
     return `${parent?.pointer ?? '#'}${propname ? `/${propname}` : ''}`
 }
 
-export function pointerData(parent?: DynJson, key?: DynKey): string {
+function pointerData(parent?: DynJson, key?: DynKey): string {
     return `${parent?.[META].pointer ?? '#'}${key != null ? `/${key}` : ''}`
 }
 
@@ -191,13 +191,13 @@ export function valueOf( pointer: string,root: DynJson, current: DynJson) {
     return base
 }
 
-export function calculateSummary(schema: SchemaDefinition, value: DynJson, $f: (p: string, a: number) => any): string {
+export function calculateSummary(schema: SchemaDefinition, value: DynJson, $f:DerefFunc): string {
     if (schema == null || isEmpty(value)) return '~'
-    if (schema.summary) return schema[Symbol('summary')](schema, value, $f)
+    if (schema.summary) return schema[Symbol('summary')].eval(value)
     if (schema.isEnum && schema.oneOf ) return String(schema.oneOf.find((item: any) => item.const === value)?.title ?? value)
     if (schema.isEnum && schema.anyOf) return String(schema.anyOf.find((item: any) => item.const === value)?.title ?? value)
-    if (schema.refTo) {
-        const refenum = schema[Symbol('refTo')](schema, value, $f)
+    if (schema.reference) {
+        const refenum = schema[Symbol('reference')].eval(value)
         if (refenum && refenum.refname && Array.isArray(refenum.refarray)) {
             const refname = refenum?.refname ?? 'id'
             const refarray = refenum?.refarray
@@ -225,33 +225,26 @@ export function calculateSummary(schema: SchemaDefinition, value: DynJson, $f: (
     return String(value)
 }
 
-enum ResolveType {
-    value = 0,
-    summary,
-    schema
-}
-
-function deref(ctx: DynContext) {
-    return (pointer: string, resolveType?: ResolveType): any => {
-        pointer = typeof pointer == "string" ? pointer : "#"
-        resolveType = Number.isInteger(ResolveType.value) ? resolveType : 0
-        const value = valueOf( pointer, ctx.root, ctx.value)
-        if (value == null) return
-        switch(resolveType) {
-            case ResolveType.value: return value
-            case ResolveType.summary: return calculateSummary(value[META].schema, value,deref(ctx))
-            case ResolveType.schema:  return value?.[META].schema
-        }
+export const deref: DerefFunc =  function(this:DynContext, pointer:string, kind: string = "value"): any {
+    const value = valueOf( pointer, this.root, this.value)
+    if (value == null) return
+    switch(kind) {
+        case "value": return value
+        case "summary": return calculateSummary(value[META].schema, value,deref.bind(this))
+        case "schema":  return value?.[META].schema
     }
 }
-
-
-export function evalExpr(attribute: string, value: DynJson, userdata: any) {
-    const schema = value[META].schema
-    const func = schema[Symbol(attribute)]
-    const root =  value[META].root
-    const key =  value[META].key
-    const ctx: DynContext = {value,root,schema,key,userdata}
-    if (typeof func != "function") return
-    return func(schema, value, parent, key, deref(ctx), userdata)
+export class DynFunc {
+    private readonly func?: ExprFunc
+    readonly expr: string | string[]
+    readonly type: SchemaPrimitive
+    constructor(expr: string | string[],type: SchemaPrimitive) { 
+        this.expr = expr
+        this.type = type
+    }
+    eval(value: DynJson):any { 
+        const context = Object.assign({} as DynContext,value[META])
+        context.value = value
+        return this.func?.call(context)
+    }
 }

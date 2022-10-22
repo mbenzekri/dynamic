@@ -8091,12 +8091,18 @@ function DynValue(value, schema, parent, key) {
     ], parent, key);
     return dynjson;
 }
-var ResolveType;
-(function (ResolveType) {
-    ResolveType[ResolveType["value"] = 0] = "value";
-    ResolveType[ResolveType["summary"] = 1] = "summary";
-    ResolveType[ResolveType["schema"] = 2] = "schema";
-})(ResolveType || (ResolveType = {}));
+
+function compileSchemaType(schema) {
+    var _a;
+    if (Array.isArray(schema.type)) {
+        schema.main = (_a = schema.type.find(t => t != "null")) !== null && _a !== void 0 ? _a : "string";
+        schema.nullable = schema.type.some(t => t == "null");
+    }
+    else {
+        schema.main = schema.type;
+        schema.nullable = schema.type == "null";
+    }
+}
 
 const AJV = new Ajv({ strictNumbers: false, strictSchema: false, coerceTypes: false, allErrors: true });
 AJV.addFormat("color", /./);
@@ -8114,30 +8120,17 @@ AJV.addFormat("email", /./);
 AJV.addFormat("uri-reference", /./);
 AJV.addFormat("uri", /./);
 AJV.addFormat("regex", /./);
-function compileSchemaType(schema) {
-    var _a;
-    if (Array.isArray(schema.type)) {
-        schema.main = (_a = schema.type.find(t => t != "null")) !== null && _a !== void 0 ? _a : "string";
-        schema.nullable = schema.type.some(t => t == "null");
-    }
-    else {
-        schema.main = schema.type;
-        schema.nullable = schema.type == "null";
-    }
-}
 class Dynamic {
-    constructor(schemaJson, dataJson, userdata = undefined, options = {}) {
+    constructor(schemaJson, dataJson, shared = undefined, options = {}) {
         var _a;
-        schemaJson = typeof schemaJson == "string" ? JSON.parse(schemaJson) : JsonCopy(schemaJson);
-        dataJson = typeof dataJson == "string" ? JSON.parse(dataJson) : dataJson;
-        options = typeof options == "string" ? JSON.parse(options) : JsonCopy(options);
-        this.userdata = userdata;
-        this.options = options;
+        this.schema = typeof schemaJson == "string" ? JSON.parse(schemaJson) : JsonCopy(schemaJson);
+        this.shared = shared;
+        this.options = typeof options == "string" ? JSON.parse(options) : JsonCopy(options);
         const compiledSchema = this.compileSchema(schemaJson);
         if (!compiledSchema)
             throw Error((_a = this.validateErrors("Invalid Schema")) === null || _a === void 0 ? void 0 : _a.join("\n"));
         this.validateFunc = AJV.compile(schemaJson);
-        this.data = DynValue(dataJson, compiledSchema);
+        this.data = DynValue(typeof dataJson == "string" ? JSON.parse(dataJson) : dataJson, compiledSchema);
     }
     compileSchema(schemaJson) {
         const valid = AJV.validateSchema(schemaJson);

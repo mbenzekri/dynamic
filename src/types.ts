@@ -2,7 +2,7 @@ export type AnyJson = boolean | number | string | null | JsonArray | JsonMap | u
 export interface JsonMap { [key: string]: AnyJson; }
 export interface JsonArray extends Array<AnyJson> { }
 
-type SchemaPrimitive = "array" | "boolean" | "integer" | "null" | "number" | "object" | "string"
+export type SchemaPrimitive = "array" | "boolean" | "integer" | "null" | "number" | "object" | "string"
 
 export function isPrimitive(value: string | DynJson) {
     return ["boolean", "integer", "null", "number", "string"].includes(typeof value == 'string' ? value : value[TYPE])
@@ -21,6 +21,12 @@ export function emptyValue(schema: SchemaDefinition) {
 
 type SchemaType = SchemaPrimitive | SchemaPrimitive[]
 //type _SchemaFuncBoolean = (value: DynJson, parent: DynJson, schema: SchemaDefinition, root: DynJson, $V: (ptr: string) => any) => boolean
+
+export type DynContext = DynMetadata & {value: DynJson}
+export type DerefFunc = (this:DynContext,string:string,kind:"value"|"summary"| "schema" ) => DynJson
+export type ExprFunc = (this: DynContext) => any
+
+interface DynFunc { eval(value: DynJson):any }
 
 export type SchemaDefinition = {
     type: SchemaType
@@ -72,22 +78,22 @@ export type SchemaDefinition = {
 
     // added for Form behavior
     pointer: string
+    parent?: SchemaDefinition
+    main: SchemaPrimitive
     composed: boolean
     isA: boolean
     nullable: boolean
     temporary?: boolean
-    main: SchemaPrimitive
-    parent?: SchemaDefinition
     summary?: string
     isEnum: boolean
-    refTo: string
+    reference: string
     // added for compiled functions
-    [name:symbol]: Function
+    [name:symbol]: DynFunc
 }
 
 export type DynKey = number | string
 export type DynMetadata = {
-    userdata:any
+    shared:any
     pointer: string
     schema: SchemaDefinition
     root: DynJson
@@ -114,11 +120,3 @@ export type WalkDataActions = WalkDataAction[]
 
 type WalkSchemaAction = (schema: SchemaDefinition, parent?: SchemaDefinition, propname?: string) => void
 export type WalkSchemaActions = WalkSchemaAction[]
-
-export type DynContext = {
-    value: DynJson
-    root: DynJson
-    schema: SchemaDefinition
-    key?: DynKey
-    userdata: any
-}
