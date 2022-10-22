@@ -1,0 +1,42 @@
+{
+  "name": "@mbenzekri/dynamic",
+  "version": "1.0.0",
+  "description": "A dynamic structure and tools to manage JSON modification through JSON Schema validation",
+  "main": "build/index.js",
+  "module": "dynamic",
+  "type": "module",
+  "repository": "https://github.com/mbenzekri/dynamic",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "scripts": {
+    "build": "npm run build:clean && npm run build:compile && npm run build:rollup",
+    "build:clean": "del /Q .\\build\\*.js && del /Q .\\build\\*.map && del /Q .\\build\\*.d.ts",
+    "build:compile": "tsc",
+    "build:rollup": "rollup -c "
+  },
+  "keywords": [
+    "Json",
+    "Json-Schema",
+    "typescript"
+  ],
+  "author": "MBZ",
+  "license": "Copyright (C) Mohamed BEN ZEKRI - All Rights Reserved",
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^21.0.1",
+    "@rollup/plugin-json": "^4.1.0",
+    "@rollup/plugin-replace": "^3.0.0",
+    "@rollup/plugin-url": "^6.1.0",
+    "@types/json-schema": "^7.0.9",
+    "ajv": "^8.11.0",
+    "ajv-i18n": "^4.2.0",
+    "deepmerge": "^4.2.2",
+    "punycode": "^2.1.1",
+    "rimraf": "^3.0.2",
+    "rollup": "^2.59.0",
+    "rollup-plugin-filesize": "^9.1.1",
+    "rollup-plugin-node-resolve": "^5.2.0",
+    "rollup-plugin-terser": "^7.0.2",
+    "typescript": "^4.4.4"
+  }
+}

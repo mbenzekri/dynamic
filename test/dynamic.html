@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="fr" charset="utf-8">
+<head>
+    <title>Dynamic Demo</title>
+</head>
+
+<body>
+    <h1>See debug console output please ...</h1>
+</body>
+
+<script type="module">
+    import { Dynamic } from "../build/index.js"
+
+    const schema = {
+        "type": "object",
+        "properties": {
+            "arequired": { "type": "string" },
+            "integer": { "type": "integer" },
+            "number": { "type": "number" },
+            "string": { "type": "string" },
+            "boolean": { "type": "boolean" },
+            "null": { "type": "null" },
+            "array": {
+                "type": "array",
+                "items": { "type": "number" }
+            },
+            "object": {
+                "type": "object",
+                "properties": {
+                    "pseudo": { "type": "string" },
+                    "age": { "type": "integer" },
+                    "email": { "type": "string", "format": "email" }
+                }
+            }
+        },
+        required: ["arequired"]
+    }
+
+    const data = { 
+        "integer" : 12, 
+        "number": "3.14159", 
+        "string": "coucou", 
+        "boolean": null, 
+        "array" : [1,2,3,null,"toto"], 
+        "object": {
+            "pseudo": "toto", 
+            "age": 12, 
+            "email" : null
+        }
+    }
+
+    try {
+
+        console.log('IN => ',JSON.stringify(data))
+        const dynamic = new Dynamic(schema,data)
+        const str = JSON.stringify(dynamic)
+        console.log('OUT => ',str)
+    } catch(err) {
+        console.log(err.message)
+    }
+</script>
+
+</html>
