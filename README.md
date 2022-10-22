@@ -1,5 +1,5 @@
-# Librairie dynamic
+# Library dynamic
 -----
 
-Javascript data structure and tools to manage JSON modification under Schema validation
+Javascript data structure and tools to manage JSON modifications under Schema validation
 
