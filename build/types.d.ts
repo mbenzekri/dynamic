@@ -4,6 +4,7 @@ export interface JsonMap {
 }
 export interface JsonArray extends Array<AnyJson> {
 }
+export declare type JsPrimitive = "array" | "boolean" | "null" | "number" | "object" | "string" | "undefined";
 export declare type SchemaPrimitive = "array" | "boolean" | "integer" | "null" | "number" | "object" | "string";
 export declare function isPrimitive(value: string | DynJson): boolean;
 export declare function isComposed(value: string | DynJson): boolean;
@@ -11,7 +12,7 @@ export declare function isEmpty(value: string | DynJson): boolean;
 export declare function emptyValue(schema: SchemaDefinition): null | undefined;
 declare type SchemaType = SchemaPrimitive | SchemaPrimitive[];
 export declare type DynContext = DynMetadata & {
-    value: DynJson;
+    value: any;
 };
 export declare type DerefFunc = (this: DynContext, string: string, kind: "value" | "summary" | "schema") => DynJson;
 export declare type ExprFunc = (this: DynContext) => any;
@@ -69,16 +70,18 @@ export declare type SchemaDefinition = {
     anyOf?: SchemaDefinition[];
     oneOf?: SchemaDefinition[];
     not?: SchemaDefinition;
+    root: SchemaDefinition;
     pointer: string;
     parent?: SchemaDefinition;
+    watchers: Set<string>;
     main: SchemaPrimitive;
     composed: boolean;
-    isA: boolean;
     nullable: boolean;
+    isA: boolean;
+    isEnum: boolean;
     temporary?: boolean;
     summary?: string;
-    isEnum: boolean;
-    reference: string;
+    reference?: string;
     [name: symbol]: DynFunc;
 };
 export declare type DynKey = number | string;
@@ -97,31 +100,37 @@ export declare type DynJson = DynUndef | DynNull | DynString | DynNumber | DynBo
 export declare type DynUndef = {
     [TYPE]: "undefined";
     [META]: DynMetadata;
+    [key: DynKey]: DynJson;
 };
 export declare type DynNull = {
     [TYPE]: "null";
     [META]: DynMetadata;
+    [key: DynKey]: DynJson;
 };
 export declare type DynString = String & {
     [TYPE]: "string";
     [META]: DynMetadata;
+    [key: DynKey]: DynJson;
 };
 export declare type DynNumber = Number & {
     [TYPE]: "number";
     [META]: DynMetadata;
+    [key: DynKey]: DynJson;
 };
 export declare type DynBoolean = Boolean & {
     [TYPE]: "boolean";
     [META]: DynMetadata;
+    [key: DynKey]: DynJson;
 };
 export declare type DynArray = Array<DynJson> & {
     [TYPE]: "array";
     [META]: DynMetadata;
+    [key: DynKey]: DynJson;
 };
 export declare type DynObject = {
-    [key: string]: DynJson;
     [TYPE]: "object";
     [META]: DynMetadata;
+    [key: DynKey]: DynJson;
 };
 declare type WalkDataAction = (data: DynJson, schema: SchemaDefinition, pdata?: DynJson, key?: DynKey) => void;
 export declare type WalkDataActions = WalkDataAction[];

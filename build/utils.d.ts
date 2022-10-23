@@ -10,11 +10,14 @@ export declare function schemaOf(pointer: string, root: SchemaDefinition, curren
 export declare function valueOf(pointer: string, root: DynJson, current: DynJson): DynJson | undefined;
 export declare function calculateSummary(schema: SchemaDefinition, value: DynJson, $f: DerefFunc): string;
 export declare const deref: DerefFunc;
-export declare class DynFunc {
-    private readonly func?;
+export declare class DynFunc<T> {
+    private func?;
+    readonly prop: string;
+    readonly defaut: T;
     readonly expr: string | string[];
-    readonly type: SchemaPrimitive;
-    constructor(expr: string | string[], type: SchemaPrimitive);
-    eval(value: DynJson): any;
+    constructor(prop: string, schema: SchemaDefinition, expr: string | string[], type: SchemaPrimitive, defaut: T);
+    eval(value: DynJson): T;
+    compile(schema: SchemaDefinition, type: SchemaPrimitive): void;
 }
+export declare function registerDependencies(current: SchemaDefinition, expr: string): void;
 //# sourceMappingURL=utils.d.ts.map

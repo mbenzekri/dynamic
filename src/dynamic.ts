@@ -1,5 +1,4 @@
 import Ajv, { AnySchema } from "ajv/dist/2020"
-import Ajvi18n from "ajv-i18n/localize/fr"
 
 const AJV = new Ajv({ strictNumbers: false, strictSchema: false, coerceTypes: false, allErrors: true })
 AJV.addFormat("color", /./)
@@ -20,22 +19,21 @@ AJV.addFormat("regex", /./)
 
 import { AnyJson, DynJson, TYPE, META, SchemaDefinition, JsonMap, isEmpty } from "./types"
 import { DynValue, JsonCopy, walkSchema } from "./utils"
-import { compileSchemaType } from "./compiler"
+import { compileDynFunc, compileSchemaDefault, compileSchemaType } from "./compiler"
 
 export class Dynamic {
     readonly data: DynJson
     readonly schema: AnyJson
     readonly shared: any
     readonly options: AnyJson
-    private readonly validateFunc: (json: any) => boolean
-    constructor(schemaJson: AnyJson | string, dataJson: AnyJson | string, shared: any = undefined, options: AnyJson | string = {}) {
+    private validateFunc?: (json: any) => boolean
+    constructor(schemaJson: AnyJson, dataJson: AnyJson, shared: any = undefined, options: AnyJson | string = {}) {
         this.schema = typeof schemaJson == "string" ? JSON.parse(schemaJson) : JsonCopy(schemaJson)
         this.shared = shared
         this.options = typeof options == "string" ? JSON.parse(options) : JsonCopy(options)
         const compiledSchema = this.compileSchema(schemaJson)
         if (!compiledSchema) throw Error(this.validateErrors("Invalid Schema")?.join("\n"))
-        this.validateFunc = AJV.compile(schemaJson as AnySchema)
-        this.data = DynValue(typeof dataJson == "string" ? JSON.parse(dataJson) : dataJson, compiledSchema)
+        this.data = DynValue(dataJson, compiledSchema)
     }
 
     compileSchema(schemaJson: AnyJson) {
@@ -44,15 +42,19 @@ export class Dynamic {
             // on passe par une copy pour ne pas modifier l'original
             const schema: SchemaDefinition = schemaJson as unknown as SchemaDefinition
             walkSchema(schema, [
-                compileSchemaType
+                compileSchemaType,
+                compileSchemaDefault,
+                compileDynFunc<string>('summary',"string","")
             ])
+            try {
+                this.validateFunc = AJV.compile(schema as AnySchema)
+            } catch(e) {}
             return schema
         }
         return
     }
 
     validateErrors(msg: string) {
-        Ajvi18n(AJV.errors)
         const errors = AJV.errors?.map(error => {
             const params = []
             for (const key in error.params) {
@@ -64,15 +66,15 @@ export class Dynamic {
         return errors
     }
 
-    validate(json?: AnyJson, schema?: SchemaDefinition) {
-        return (json == null || schema == null) ? this.validateFunc(this.data) : AJV.validate(schema, json)
+    validate() {
+        return !!this.validateFunc?.(this.data)
     }
 
     deepCopy(value = this.data): AnyJson {
         const schema = value[META].schema
         // a temporary value is allways returned as undefined
         if (schema?.temporary) return undefined
-        const nullval = schema.nullable ? null : undefined
+        const nullval = schema?.nullable ? null : undefined
         switch (value[TYPE]) {
             case "undefined": return undefined
             case "null": return null

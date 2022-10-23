@@ -4,11 +4,11 @@ export declare class Dynamic {
     readonly schema: AnyJson;
     readonly shared: any;
     readonly options: AnyJson;
-    private readonly validateFunc;
-    constructor(schemaJson: AnyJson | string, dataJson: AnyJson | string, shared?: any, options?: AnyJson | string);
+    private validateFunc?;
+    constructor(schemaJson: AnyJson, dataJson: AnyJson, shared?: any, options?: AnyJson | string);
     compileSchema(schemaJson: AnyJson): SchemaDefinition | undefined;
     validateErrors(msg: string): string[] | undefined;
-    validate(json?: AnyJson, schema?: SchemaDefinition): boolean;
+    validate(): boolean;
     deepCopy(value?: DynJson): AnyJson;
     toJSON(): AnyJson;
 }

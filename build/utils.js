@@ -1,4 +1,4 @@
-import { emptyValue, isEmpty } from "./types";
+import { emptyValue, isEmpty, isPrimitive } from "./types";
 import { TYPE, META } from "./types";
 export function JsonType(value) {
     if (typeof value == "number")
@@ -126,8 +126,7 @@ function setMeta(data, schema, parent, key) {
 }
 export function DynValue(value, schema, parent, key) {
     function DynCtor(value) {
-        let type = "undefined";
-        let result = {};
+        let [type, result] = ["undefined", {}];
         if (value === null)
             [type, result] = ["null", {}];
         else if (typeof value == "string")
@@ -142,7 +141,28 @@ export function DynValue(value, schema, parent, key) {
             [type, result] = ["object", Object.keys(value).reduce((obj, key) => { obj[key] = DynCtor(value[key]); return obj; }, {})];
         Object.defineProperty(result, TYPE, { value: type });
         Object.defineProperty(result, META, { value: {} });
-        return result;
+        return new Proxy(result, {
+            get(target, key) {
+                //console.log(`Get on "${target[META].pointer}"`)   
+                // FIX --- following fix error  calls to valueOf() over primitive (Number,String, Boolean)
+                // TypeError: Number.prototype.valueOf requires that 'this' be a Number
+                if (key === "valueOf" || key === Symbol.toPrimitive) {
+                    if (target[TYPE] == "null")
+                        return (hint) => hint == "string" ? "" : null;
+                    if (target[TYPE] == "undefined")
+                        return (hint) => hint == "string" ? "" : undefined;
+                    if (key === "valueOf")
+                        return () => target[key].call(target);
+                }
+                // FIX --- 
+                return Reflect.get(target, key, target);
+            },
+            set(target, key, value) {
+                const dynjson = DynValue(value, target[META].schema, target[META].parent, target[META].key);
+                //console.log(`Set on "${target[META].pointer}"`)   
+                return Reflect.set(target, key, dynjson, target);
+            }
+        });
     }
     const dynjson = DynCtor(value);
     walkDynJson(dynjson, schema, [
@@ -261,15 +281,45 @@ export const deref = function (pointer, kind = "value") {
     }
 };
 export class DynFunc {
-    constructor(expr, type) {
+    constructor(prop, schema, expr, type, defaut) {
+        this.prop = prop;
         this.expr = expr;
-        this.type = type;
+        this.defaut = defaut;
+        this.compile(schema, type);
     }
     eval(value) {
         var _a;
-        const context = Object.assign({}, value[META]);
-        context.value = value;
-        return (_a = this.func) === null || _a === void 0 ? void 0 : _a.call(context);
+        try {
+            const context = Object.assign({}, value[META]);
+            context.value = isPrimitive(value) ? value.valueOf() : value;
+            return (_a = this.func) === null || _a === void 0 ? void 0 : _a.call(context);
+        }
+        catch (e) {
+            console.error(`unable to eval property "${this.prop}" error is : \n\t => ${e.toString()}`);
+            return this.defaut;
+        }
+    }
+    compile(schema, type) {
+        if (type == "string" && typeof this.expr == "string") {
+            registerDependencies(schema, this.expr);
+            try {
+                const code = ` return nvl\`${this.expr}\`; `;
+                this.func = Function(code);
+            }
+            catch (e) {
+                this.func = () => "";
+                console.error(`unable to compile ${this.prop} expression "${this.expr}" error is: \n\t => ${String(e)}`);
+            }
+        }
+    }
+}
+export function registerDependencies(current, expr) {
+    const POINTER_RE = /((#|\d+)(\/[^"']+)+)/g;
+    let matches;
+    while ((matches = POINTER_RE.exec(expr)) != null) {
+        const pointer = matches[1];
+        const dependant = schemaOf(pointer, current.root, current);
+        dependant === null || dependant === void 0 ? void 0 : dependant.watchers.add(current.pointer);
     }
 }
 //# sourceMappingURL=utils.js.map

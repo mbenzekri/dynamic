@@ -7778,192 +7778,9 @@ Object.defineProperty(exports, "CodeGen", { enumerable: true, get: function () {
 
 var Ajv = /*@__PURE__*/getDefaultExportFromCjs(_2020.exports);
 
-var fr = function localize_fr(errors) {
-  if (!(errors && errors.length)) return
-  for (const e of errors) {
-    let out;
-    switch (e.keyword) {
-      case "additionalItems":
-      case "items":
-        out = "";
-        var n = e.params.limit;
-        out += "ne doit pas contenir plus de " + n + " élémént";
-        if (n != 1) {
-          out += "s";
-        }
-        break
-      case "additionalProperties":
-        out = "ne doit pas contenir de propriétés additionnelles";
-        break
-      case "anyOf":
-        out = 'doit correspondre à un schéma de "anyOf"';
-        break
-      case "const":
-        out = "doit être égal à la constante";
-        break
-      case "contains":
-        out = "doit contenir un élément valide";
-        break
-      case "dependencies":
-      case "dependentRequired":
-        out = "";
-        var n = e.params.depsCount;
-        out +=
-          "doit avoir la propriété " +
-          e.params.deps +
-          " quand la propriété " +
-          e.params.property +
-          " est présente";
-        break
-      case "discriminator":
-        switch (e.params.error) {
-          case "tag":
-            out = 'tag "' + e.params.tag + '" must be string';
-            break
-          case "mapping":
-            out = 'value of tag "' + e.params.tag + '" must be in oneOf';
-            break
-          default:
-            out = 'doit être valide selon le critère "' + e.keyword + '"';
-        }
-        break
-      case "enum":
-        out = "doit être égal à une des valeurs prédéfinies";
-        break
-      case "false schema":
-        out = 'le schema est "false"';
-        break
-      case "format":
-        out = 'doit correspondre au format "' + e.params.format + '"';
-        break
-      case "formatMaximum":
-      case "formatExclusiveMaximum":
-        out = "";
-        var cond = e.params.comparison + " " + e.params.limit;
-        out += "doit être " + cond;
-        break
-      case "formatMinimum":
-      case "formatExclusiveMinimum":
-        out = "";
-        var cond = e.params.comparison + " " + e.params.limit;
-        out += "doit être " + cond;
-        break
-      case "if":
-        out = 'doit correspondre au schéma "' + e.params.failingKeyword + '"';
-        break
-      case "maximum":
-      case "exclusiveMaximum":
-        out = "";
-        var cond = e.params.comparison + " " + e.params.limit;
-        out += "doit être " + cond;
-        break
-      case "maxItems":
-        out = "";
-        var n = e.params.limit;
-        out += "ne doit pas contenir plus de " + n + " élément";
-        if (n != 1) {
-          out += "s";
-        }
-        break
-      case "maxLength":
-        out = "";
-        var n = e.params.limit;
-        out += "ne doit pas dépasser " + n + " caractère";
-        if (n != 1) {
-          out += "s";
-        }
-        break
-      case "maxProperties":
-        out = "";
-        var n = e.params.limit;
-        out += "ne doit pas contenir plus de " + n + " propriété";
-        if (n != 1) {
-          out += "s";
-        }
-        break
-      case "minimum":
-      case "exclusiveMinimum":
-        out = "";
-        var cond = e.params.comparison + " " + e.params.limit;
-        out += "doit être " + cond;
-        break
-      case "minItems":
-        out = "";
-        var n = e.params.limit;
-        out += "ne doit pas contenir moins de " + n + " élément";
-        if (n != 1) {
-          out += "s";
-        }
-        break
-      case "minLength":
-        out = "";
-        var n = e.params.limit;
-        out += "ne doit pas faire moins de " + n + " caractère";
-        if (n != 1) {
-          out += "s";
-        }
-        break
-      case "minProperties":
-        out = "";
-        var n = e.params.limit;
-        out += "ne doit pas contenir moins de " + n + " propriété";
-        if (n != 1) {
-          out += "s";
-        }
-        break
-      case "multipleOf":
-        out = "doit être un multiple de " + e.params.multipleOf;
-        break
-      case "not":
-        out = 'est invalide selon le schéma "not"';
-        break
-      case "oneOf":
-        out = 'doit correspondre à exactement un schéma de "oneOf"';
-        break
-      case "pattern":
-        out = 'doit correspondre au format "' + e.params.pattern + '"';
-        break
-      case "patternRequired":
-        out =
-          'la propriété doit correspondre au format "' +
-          e.params.missingPattern +
-          '"';
-        break
-      case "propertyNames":
-        out = "le nom de propriété est invalide";
-        break
-      case "required":
-        out = "requiert la propriété " + e.params.missingProperty;
-        break
-      case "type":
-        out = "doit être de type " + e.params.type;
-        break
-      case "unevaluatedItems":
-        out = "";
-        var n = e.params.len;
-        out += "must NOT have more than " + n + " item";
-        if (n != 1) {
-          out += "s";
-        }
-        break
-      case "unevaluatedProperties":
-        out = "must NOT have unevaluated properties";
-        break
-      case "uniqueItems":
-        out =
-          "ne doit pas contenir de doublons (les éléments ## " +
-          e.params.j +
-          " et " +
-          e.params.i +
-          " sont identiques)";
-        break
-      default:
-        out = 'doit être valide selon le critère "' + e.keyword + '"';
-    }
-    e.message = out;
-  }
-};
-
+function isPrimitive(value) {
+    return ["boolean", "integer", "null", "number", "string"].includes(typeof value == 'string' ? value : value[TYPE]);
+}
 function isEmpty(value) {
     return ["null", "undefined"].includes(typeof value == 'string' ? value : value[TYPE]);
 }
@@ -7972,6 +7789,20 @@ const TYPE = Symbol();
 
 function JsonCopy(value) {
     return JSON.parse(JSON.stringify(value));
+}
+function splitPointer(pointer) {
+    const pointerRe = /^(\d+|#)([\/][^\/])*$/;
+    if (pointerRe.test(pointer)) {
+        const downsteps = pointer.split(/ *\/ */).filter(v => v != '').map(t => /^\d+$/.test(t) ? parseInt(t, 10) : t);
+        const upsteps = typeof downsteps[0] == "number" ? downsteps[0] : -1;
+        const relative = upsteps >= 0;
+        const absolute = !relative;
+        downsteps.shift();
+        const parent = downsteps.length > 0 ? pointer.replace(/[/][^/]*$/, "") : undefined;
+        const key = downsteps.length > 0 ? downsteps[downsteps.length - 1] : undefined;
+        return { pointer, absolute, relative, upsteps, downsteps, parent, key };
+    }
+    throw (`Incorrect pointer syntax "${pointer}" must be "#/prop1/prop2/..." or "<number>/prop1/prop2/..."`);
 }
 function pointerSchema(parent, propname) {
     var _a;
@@ -8067,8 +7898,7 @@ function setMeta(data, schema, parent, key) {
 }
 function DynValue(value, schema, parent, key) {
     function DynCtor(value) {
-        let type = "undefined";
-        let result = {};
+        let [type, result] = ["undefined", {}];
         if (value === null)
             [type, result] = ["null", {}];
         else if (typeof value == "string")
@@ -8083,13 +7913,98 @@ function DynValue(value, schema, parent, key) {
             [type, result] = ["object", Object.keys(value).reduce((obj, key) => { obj[key] = DynCtor(value[key]); return obj; }, {})];
         Object.defineProperty(result, TYPE, { value: type });
         Object.defineProperty(result, META, { value: {} });
-        return result;
+        return new Proxy(result, {
+            get(target, key) {
+                //console.log(`Get on "${target[META].pointer}"`)   
+                // FIX --- following fix error  calls to valueOf() over primitive (Number,String, Boolean)
+                // TypeError: Number.prototype.valueOf requires that 'this' be a Number
+                if (key === "valueOf" || key === Symbol.toPrimitive) {
+                    if (target[TYPE] == "null")
+                        return (hint) => hint == "string" ? "" : null;
+                    if (target[TYPE] == "undefined")
+                        return (hint) => hint == "string" ? "" : undefined;
+                    if (key === "valueOf")
+                        return () => target[key].call(target);
+                }
+                // FIX --- 
+                return Reflect.get(target, key, target);
+            },
+            set(target, key, value) {
+                const dynjson = DynValue(value, target[META].schema, target[META].parent, target[META].key);
+                //console.log(`Set on "${target[META].pointer}"`)   
+                return Reflect.set(target, key, dynjson, target);
+            }
+        });
     }
     const dynjson = DynCtor(value);
     walkDynJson(dynjson, schema, [
         setMeta // recursive initialisation of "META" property
     ], parent, key);
     return dynjson;
+}
+function schemaOf(pointer, root, current) {
+    var _a;
+    const sptr = splitPointer(pointer);
+    let base = sptr.relative ? current : root;
+    if (sptr.relative) {
+        for (let i = 0; i < sptr.upsteps; i++)
+            base = base === null || base === void 0 ? void 0 : base.parent;
+        if (!base) {
+            console.error(`in context ${current.pointer} enable to dereference pointer ${pointer} (not enough ascendant')`);
+            return;
+        }
+    }
+    for (const token of sptr.downsteps) {
+        const prev = base;
+        base = (token === '*') ? base.items : (_a = base.properties) === null || _a === void 0 ? void 0 : _a[token];
+        if (!base) {
+            console.error(`in context ${current.pointer} enable to dereference pointer ${pointer}(property '${token}' not found in ${prev.pointer})`);
+            return;
+        }
+    }
+    return base;
+}
+class DynFunc {
+    constructor(prop, schema, expr, type, defaut) {
+        this.prop = prop;
+        this.expr = expr;
+        this.defaut = defaut;
+        this.compile(schema, type);
+    }
+    eval(value) {
+        var _a;
+        try {
+            const context = Object.assign({}, value[META]);
+            context.value = isPrimitive(value) ? value.valueOf() : value;
+            return (_a = this.func) === null || _a === void 0 ? void 0 : _a.call(context);
+        }
+        catch (e) {
+            console.error(`unable to eval property "${this.prop}" error is : \n\t => ${e.toString()}`);
+            return this.defaut;
+        }
+    }
+    compile(schema, type) {
+        if (type == "string" && typeof this.expr == "string") {
+            registerDependencies(schema, this.expr);
+            try {
+                const code = ` return nvl\`${this.expr}\`; `;
+                this.func = Function(code);
+            }
+            catch (e) {
+                this.func = () => "";
+                console.error(`unable to compile ${this.prop} expression "${this.expr}" error is: \n\t => ${String(e)}`);
+            }
+        }
+    }
+}
+function registerDependencies(current, expr) {
+    const POINTER_RE = /((#|\d+)(\/[^"']+)+)/g;
+    let matches;
+    while ((matches = POINTER_RE.exec(expr)) != null) {
+        const pointer = matches[1];
+        const dependant = schemaOf(pointer, current.root, current);
+        dependant === null || dependant === void 0 ? void 0 : dependant.watchers.add(current.pointer);
+    }
 }
 
 function compileSchemaType(schema) {
@@ -8102,6 +8017,23 @@ function compileSchemaType(schema) {
         schema.main = schema.type;
         schema.nullable = schema.type == "null";
     }
+}
+function compileSchemaDefault(schema, parent, key) {
+    schema.pointer = parent == null ? "#" : `${parent === null || parent === void 0 ? void 0 : parent.pointer}/${key}`;
+    schema.composed = false;
+    schema.isA = false;
+    schema.isEnum = false;
+    schema.temporary = false;
+    schema.summary = undefined;
+    schema.reference = undefined;
+}
+function compileDynFunc(property, type, defval) {
+    return (schema, _parent, _key) => {
+        if (typeof schema[property] === "function")
+            return;
+        const expression = String(schema[property]);
+        schema[Symbol(property)] = new DynFunc(property, schema, expression, type, defval);
+    };
 }
 
 const AJV = new Ajv({ strictNumbers: false, strictSchema: false, coerceTypes: false, allErrors: true });
@@ -8129,8 +8061,7 @@ class Dynamic {
         const compiledSchema = this.compileSchema(schemaJson);
         if (!compiledSchema)
             throw Error((_a = this.validateErrors("Invalid Schema")) === null || _a === void 0 ? void 0 : _a.join("\n"));
-        this.validateFunc = AJV.compile(schemaJson);
-        this.data = DynValue(typeof dataJson == "string" ? JSON.parse(dataJson) : dataJson, compiledSchema);
+        this.data = DynValue(dataJson, compiledSchema);
     }
     compileSchema(schemaJson) {
         const valid = AJV.validateSchema(schemaJson);
@@ -8138,15 +8069,20 @@ class Dynamic {
             // on passe par une copy pour ne pas modifier l'original
             const schema = schemaJson;
             walkSchema(schema, [
-                compileSchemaType
+                compileSchemaType,
+                compileSchemaDefault,
+                compileDynFunc('summary', "string", "")
             ]);
+            try {
+                this.validateFunc = AJV.compile(schema);
+            }
+            catch (e) { }
             return schema;
         }
         return;
     }
     validateErrors(msg) {
         var _a;
-        fr(AJV.errors);
         const errors = (_a = AJV.errors) === null || _a === void 0 ? void 0 : _a.map(error => {
             const params = [];
             for (const key in error.params) {
@@ -8157,15 +8093,16 @@ class Dynamic {
         errors === null || errors === void 0 ? void 0 : errors.unshift(msg);
         return errors;
     }
-    validate(json, schema) {
-        return (json == null || schema == null) ? this.validateFunc(this.data) : AJV.validate(schema, json);
+    validate() {
+        var _a;
+        return !!((_a = this.validateFunc) === null || _a === void 0 ? void 0 : _a.call(this, this.data));
     }
     deepCopy(value = this.data) {
         const schema = value[META].schema;
         // a temporary value is allways returned as undefined
         if (schema === null || schema === void 0 ? void 0 : schema.temporary)
             return undefined;
-        const nullval = schema.nullable ? null : undefined;
+        const nullval = (schema === null || schema === void 0 ? void 0 : schema.nullable) ? null : undefined;
         switch (value[TYPE]) {
             case "undefined": return undefined;
             case "null": return null;

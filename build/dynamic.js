@@ -1,5 +1,4 @@
 import Ajv from "ajv/dist/2020";
-import Ajvi18n from "ajv-i18n/localize/fr";
 const AJV = new Ajv({ strictNumbers: false, strictSchema: false, coerceTypes: false, allErrors: true });
 AJV.addFormat("color", /./);
 AJV.addFormat("signature", /./);
@@ -18,7 +17,7 @@ AJV.addFormat("uri", /./);
 AJV.addFormat("regex", /./);
 import { TYPE, META, isEmpty } from "./types";
 import { DynValue, JsonCopy, walkSchema } from "./utils";
-import { compileSchemaType } from "./compiler";
+import { compileDynFunc, compileSchemaDefault, compileSchemaType } from "./compiler";
 export class Dynamic {
     constructor(schemaJson, dataJson, shared = undefined, options = {}) {
         var _a;
@@ -28,8 +27,7 @@ export class Dynamic {
         const compiledSchema = this.compileSchema(schemaJson);
         if (!compiledSchema)
             throw Error((_a = this.validateErrors("Invalid Schema")) === null || _a === void 0 ? void 0 : _a.join("\n"));
-        this.validateFunc = AJV.compile(schemaJson);
-        this.data = DynValue(typeof dataJson == "string" ? JSON.parse(dataJson) : dataJson, compiledSchema);
+        this.data = DynValue(dataJson, compiledSchema);
     }
     compileSchema(schemaJson) {
         const valid = AJV.validateSchema(schemaJson);
@@ -37,15 +35,20 @@ export class Dynamic {
             // on passe par une copy pour ne pas modifier l'original
             const schema = schemaJson;
             walkSchema(schema, [
-                compileSchemaType
+                compileSchemaType,
+                compileSchemaDefault,
+                compileDynFunc('summary', "string", "")
             ]);
+            try {
+                this.validateFunc = AJV.compile(schema);
+            }
+            catch (e) { }
             return schema;
         }
         return;
     }
     validateErrors(msg) {
         var _a;
-        Ajvi18n(AJV.errors);
         const errors = (_a = AJV.errors) === null || _a === void 0 ? void 0 : _a.map(error => {
             const params = [];
             for (const key in error.params) {
@@ -56,15 +59,16 @@ export class Dynamic {
         errors === null || errors === void 0 ? void 0 : errors.unshift(msg);
         return errors;
     }
-    validate(json, schema) {
-        return (json == null || schema == null) ? this.validateFunc(this.data) : AJV.validate(schema, json);
+    validate() {
+        var _a;
+        return !!((_a = this.validateFunc) === null || _a === void 0 ? void 0 : _a.call(this, this.data));
     }
     deepCopy(value = this.data) {
         const schema = value[META].schema;
         // a temporary value is allways returned as undefined
         if (schema === null || schema === void 0 ? void 0 : schema.temporary)
             return undefined;
-        const nullval = schema.nullable ? null : undefined;
+        const nullval = (schema === null || schema === void 0 ? void 0 : schema.nullable) ? null : undefined;
         switch (value[TYPE]) {
             case "undefined": return undefined;
             case "null": return null;
