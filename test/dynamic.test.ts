@@ -1,6 +1,8 @@
 import { Dynamic } from "../src/dynamic"
 import { META, TYPE } from "../src/types"
 
+// switch off logs during testing
+Dynamic.logOff()
 
 describe("test Dynamic class", () => {
 
@@ -13,6 +15,14 @@ describe("test Dynamic class", () => {
     it("should throw an 'Invalid Schema' message", () => {
         try {
             new Dynamic({ type: "numberZ" }, 12);
+        } catch (e) {
+            expect((e as Error).message.startsWith("Invalid Schema")).toBe(true);
+        }
+    })
+
+    it("should throw an 'Invalid Schema' compilation message", () => {
+        try {
+            new Dynamic({ type: "number", "summary": "${}" }, 12);
         } catch (e) {
             expect((e as Error).message.startsWith("Invalid Schema")).toBe(true);
         }

@@ -18,7 +18,7 @@ export function isEmpty(value: string | DynJson) {
 }
 
 export function emptyValue(schema: SchemaDefinition) {
-    return schema.nullable ? null : undefined
+    return schema.allowNull ? null : undefined
 }
 
 type SchemaType = SchemaPrimitive | SchemaPrimitive[]
@@ -79,20 +79,39 @@ export type SchemaDefinition = {
     not?: SchemaDefinition
 
     // added for Form behavior
+    /** root schema (uppermost ascendant) if this schema */ 
     root: SchemaDefinition
+    /** absolute pointer of this schema */ 
     pointer: string
+    /** parent of this schema */ 
     parent?: SchemaDefinition
-    watchers: Set<string>
+    /** main type of this schema */ 
     main: SchemaPrimitive
-    composed: boolean
-    nullable: boolean
-    isA: boolean
-    isEnum: boolean
-    temporary?: boolean
-    summary?: string
-    reference?: string
+    /** true if null is an authorized value */ 
+    allowNull: boolean
+    /** set of pointers of schema dependant/watching to this schema */ 
+    watchers: Set<string>
+    /** true if schema if a composition oneOf, anyOf, allOf  */ 
+    isComposed: boolean
+    /** true if schema if an enumeration through "enum" property of by composition (oneOf consts only)  */ 
+    isEnum: boolean 
+    /** true if value is instance of this schema */ 
+    isA: boolean | string            
+    /** true if value is living only during form processing temporary (never returned) */ 
+    isTemporary: boolean
+    /** expression to produce a summary for this schema */ 
+    summary: string
+    /** pointer to and array value wich*/ 
+    reference?: {pointer: string, id:string, withAdd: boolean, withModify: boolean }
     // added for compiled functions
     [name: symbol]: DynFunc
+}
+
+export const SFUNC = {
+    isA : Symbol('isA'),
+    isTemporary : Symbol('isTemporary'),
+    summary : Symbol('summary'),
+    reference : Symbol('reference'),
 }
 
 export type DynKey = number | string

@@ -18,8 +18,8 @@ AJV.addFormat("uri", /./)
 AJV.addFormat("regex", /./)
 
 import { AnyJson, DynJson, TYPE, META, SchemaDefinition, JsonMap, isEmpty } from "./types"
-import { DynValue, JsonCopy, walkSchema } from "./utils"
-import { compileDynFunc, compileSchemaDefault, compileSchemaType } from "./compiler"
+import { DynValue, JsonCopy, LOGGER, walkSchema } from "./utils"
+import { compileDynFunc, compileSchemaDefault, compileSchemaInit } from "./compiler"
 
 export class Dynamic {
     readonly data: DynJson
@@ -35,14 +35,16 @@ export class Dynamic {
         if (!compiledSchema) throw Error(this.validateErrors("Invalid Schema")?.join("\n"))
         this.data = DynValue(dataJson, compiledSchema)
     }
-
+    get logger() { return LOGGER }
+    static logOn() {  LOGGER.isOn = true }
+    static logOff() { LOGGER.isOn = false }
     compileSchema(schemaJson: AnyJson) {
         const valid = AJV.validateSchema(schemaJson as AnySchema)
         if (valid) {
             // on passe par une copy pour ne pas modifier l'original
             const schema: SchemaDefinition = schemaJson as unknown as SchemaDefinition
             walkSchema(schema, [
-                compileSchemaType,
+                compileSchemaInit,
                 compileSchemaDefault,
                 compileDynFunc<string>('summary',"string","")
             ])
@@ -73,8 +75,8 @@ export class Dynamic {
     deepCopy(value = this.data): AnyJson {
         const schema = value[META].schema
         // a temporary value is allways returned as undefined
-        if (schema?.temporary) return undefined
-        const nullval = schema?.nullable ? null : undefined
+        if (schema?.isTemporary) return undefined
+        const nullval = schema?.allowNull ? null : undefined
         switch (value[TYPE]) {
             case "undefined": return undefined
             case "null": return null

@@ -1,15 +1,58 @@
-import { DynJson, DynObject, DynKey, emptyValue, DynContext, isEmpty, ExprFunc, DerefFunc, SchemaPrimitive, isPrimitive } from "./types"
+import { calculateSummary } from "./default";
+import { DynJson, DynKey, DynContext, ExprFunc, DerefFunc, SchemaPrimitive, isPrimitive } from "./types"
 import { TYPE, META, AnyJson, SchemaDefinition, WalkDataActions, WalkSchemaActions } from "./types"
 
-export function JsonType(value: AnyJson) {
-    if (typeof value == "number") return "number"
-    if (typeof value == "string") return "string"
-    if (typeof value == "boolean") return "boolean"
-    if (Array.isArray(value)) return "array"
-    if (value != null) return "object"
-    if (value === null) return "null"
-    return "undefined"
+export const NOLOG = { 
+    log: (_m:any,..._o:any[]):void => {undefined}, 
+    warn: (_m:any,..._o:any[]):void => undefined, 
+    error: (_m:any,..._o:any[]):void => undefined, 
+    debug: (_m:any,..._o:any[]):void => undefined, 
 }
+
+export const LOGGER = new class {
+    isOn = true
+    log(m:any,...o:any[]):void { this.isOn ? console.log(`DYNAMIC: ${m}`,...o) : undefined } 
+    warn(m:any,...o:any[]):void { this.isOn ? console.log(`DYNAMIC: ${m}`,...o) : undefined } 
+    error(m:any,...o:any[]):void { this.isOn ? console.log(`DYNAMIC: ${m}`,...o) : undefined } 
+    debug(m:any,...o:any[]):void { this.isOn ? console.log(`DYNAMIC: ${m}`,...o) : undefined } 
+}
+
+/** tag template to replace nullish values by empty string  */
+;(globalThis as any).nvl = function nvl(strarr: string[], ...valarr: any[]) {
+    const all: any[] = []
+    strarr.forEach((str, i) => (i == 0)
+        ? all.push(str)
+        : all.push(valarr[i - 1] == null ? '' : valarr[i - 1], str))
+    return all.join('')
+}
+
+/** tag template to resolve pointer access to value */
+;(globalThis as any).V = function(strarr: string[], ...valarr: any[]) {
+    const all: any[] = []
+    strarr.forEach((str, i) => (i == 0)
+        ? all.push(str)
+        : all.push(valarr[i - 1] == null ? '' : valarr[i - 1], str))
+    return all.join('')
+}
+
+/** tag template to resolve pointer access to abstract */
+;(globalThis as any).A = function(strarr: string[], ...valarr: any[]) {
+    const all: any[] = []
+    strarr.forEach((str, i) => (i == 0)
+        ? all.push(str)
+        : all.push(valarr[i - 1] == null ? '' : valarr[i - 1], str))
+    return all.join('')
+}
+
+/** tag template to resolve pointer access to schema */
+;(globalThis as any).S = function(strarr: string[], ...valarr: any[]) {
+    const all: any[] = []
+    strarr.forEach((str, i) => (i == 0)
+        ? all.push(str)
+        : all.push(valarr[i - 1] == null ? '' : valarr[i - 1], str))
+    return all.join('')
+};
+
 
 export function JsonCopy(value: AnyJson): AnyJson {
     return JSON.parse(JSON.stringify(value))
@@ -43,7 +86,7 @@ export function walkSchema(schema: SchemaDefinition, actions: WalkSchemaActions,
         try {
             action(schema, parent, propname)
         } catch (e) {
-            console.error([
+            LOGGER.error([
                 `Error while compiling schema ${String(e)}`,
                 `action: ${action.name}`,
                 `schema: ${pointerSchema(parent, propname)}`
@@ -70,12 +113,12 @@ export const walkDynJson = (djs: DynJson, dsch: SchemaDefinition, actions: WalkD
         try {
             action(djs, dsch, pdjs, key)
         } catch (e) {
-            console.error(`Error while compiling data ${String(e)}\naction: ${action.name}\n at: ${pointerData(pdjs, key)}`)
+            LOGGER.error(`Error while compiling data ${String(e)}\naction: ${action.name}\n at: ${pointerData(pdjs, key)}`)
         }
     }
 
     if (djs[TYPE] == "array") {
-        if (dsch.composed) {
+        if (dsch.isComposed) {
             djs.forEach((item, index) => {
                 const composition = dsch.items?.oneOf ?? dsch.items?.anyOf ?? dsch.items?.allOf ?? []
                 composition.forEach((schema: any) => {
@@ -126,7 +169,7 @@ export function DynValue(value: AnyJson, schema: SchemaDefinition, parent?: DynJ
         Object.defineProperty(result, META, { value: {} })
         return new Proxy(result,{
             get(target,key)  {
-                //console.log(`Get on "${target[META].pointer}"`)   
+                //LOGGER.log(`Get on "${target[META].pointer}"`)   
                 // FIX --- following fix error  calls to valueOf() over primitive (Number,String, Boolean)
                 // TypeError: Number.prototype.valueOf requires that 'this' be a Number
                 if (key === "valueOf" || key === Symbol.toPrimitive)  {
@@ -139,7 +182,7 @@ export function DynValue(value: AnyJson, schema: SchemaDefinition, parent?: DynJ
             },
             set(target,key,value)  {
                 const dynjson = DynValue(value,target[META].schema,target[META].parent,target[META].key)
-                //console.log(`Set on "${target[META].pointer}"`)   
+                //LOGGER.log(`Set on "${target[META].pointer}"`)   
                 return Reflect.set(target,key,dynjson,target)
             }
         })
@@ -151,34 +194,13 @@ export function DynValue(value: AnyJson, schema: SchemaDefinition, parent?: DynJ
     return dynjson
 }
 
-export function calculateDefault(schema: SchemaDefinition, parent: DynJson, key: DynKey): DynJson {
-    switch (true) {
-        case schema.const !== null:
-            return schema.const
-        case schema.default != null:
-            return DynValue(schema.default, schema, parent, key)
-        case schema.main === 'object': {
-            const dynobj = DynValue({}, schema, parent, key) as DynObject
-            schema.properties && Object.entries(schema.properties).forEach(
-                ([pname, pschema]) => {
-                    dynobj[pname] = calculateDefault(pschema, dynobj, pname)
-                })
-            return dynobj
-        }
-        case schema.main === 'array':
-            return DynValue([], schema, parent, key)
-        default:
-    }
-    return DynValue(emptyValue(schema), schema, parent, key)
-}
-
 export function schemaOf(pointer: string, root: SchemaDefinition, current: SchemaDefinition) {
     const sptr = splitPointer(pointer)
     let base: SchemaDefinition | undefined = sptr.relative ? current : root
     if (sptr.relative) {
         for (let i = 0; i < sptr.upsteps; i++) base = base?.parent
         if (!base) {
-            console.error(`in context ${current.pointer} enable to dereference pointer ${pointer} (not enough ascendant')`)
+            LOGGER.error(`in context ${current.pointer} enable to dereference pointer ${pointer} (not enough ascendant')`)
             return
         }
     }
@@ -186,7 +208,7 @@ export function schemaOf(pointer: string, root: SchemaDefinition, current: Schem
         const prev = base
         base = (token === '*') ? base.items : base.properties?.[token]
         if (!base) {
-            console.error(`in context ${current.pointer} enable to dereference pointer ${pointer}(property '${token}' not found in ${prev.pointer})`)
+            LOGGER.error(`in context ${current.pointer} enable to dereference pointer ${pointer}(property '${token}' not found in ${prev.pointer})`)
             return
         }
     }
@@ -206,40 +228,6 @@ export function valueOf(pointer: string, root: DynJson, current: DynJson) {
         if (base[TYPE] == "array" && typeof token == "number") { base = base[token] }
     }
     return base
-}
-
-export function calculateSummary(schema: SchemaDefinition, value: DynJson, $f: DerefFunc): string {
-    if (schema == null || isEmpty(value)) return '~'
-    if (schema.summary) return schema[Symbol('summary')].eval(value)
-    if (schema.isEnum && schema.oneOf) return String(schema.oneOf.find((item: any) => item.const === value)?.title ?? value)
-    if (schema.isEnum && schema.anyOf) return String(schema.anyOf.find((item: any) => item.const === value)?.title ?? value)
-    if (schema.reference) {
-        const refenum = schema[Symbol('reference')].eval(value)
-        if (refenum && refenum.refname && Array.isArray(refenum.refarray)) {
-            const refname = refenum?.refname ?? 'id'
-            const refarray = refenum?.refarray
-            const index = refarray?.findIndex((item: any) => item[refname] === value)
-            if (index >= 0) {
-                const schema = refarray[index][META].schema
-                return schema?.summary(schema, refarray[index], refarray, index, $f)
-            }
-            return String(value)
-        }
-        return String(value)
-    }
-    if (value[TYPE] == "array") {
-        return (value as Array<any>)
-            .map((item: any) => item && schema.items ? calculateSummary(schema.items, item, $f) : item)
-            .filter((v: any) => v)
-            .join(',')
-    }
-    if (value[TYPE] == "object") {
-        return schema.properties ? Object.keys(schema.properties)
-            .filter((property: string) => !(value[property] == null))
-            .map((property: string) => schema.properties ? calculateSummary(schema.properties[property], value[property], $f) : value[property])
-            .join(',') : ""
-    }
-    return String(value)
 }
 
 export const deref: DerefFunc = function (this: DynContext, pointer: string, kind: string = "value"): any {
@@ -268,7 +256,7 @@ export class DynFunc<T> {
             context.value = isPrimitive(value) ? value.valueOf() : value
             return this.func?.call(context)
         } catch (e: any) {
-            console.error(`unable to eval property "${this.prop}" error is : \n\t => ${e.toString()}`)
+            LOGGER.error(`unable to eval property "${this.prop}" error is : \n\t => ${e.toString()}`)
             return this.defaut
         }
     }
@@ -280,7 +268,7 @@ export class DynFunc<T> {
                 this.func = Function(code) as ExprFunc
             } catch (e) {
                 this.func = () => ""
-                console.error(`unable to compile ${this.prop} expression "${this.expr}" error is: \n\t => ${String(e)}`)
+                LOGGER.log(`unable to compile ${this.prop} expression "${this.expr}" error is: \n\t => ${String(e)}`)
             }
         }
     }
@@ -288,7 +276,7 @@ export class DynFunc<T> {
 
 
 export function registerDependencies(current: SchemaDefinition, expr: string): void {
-    const POINTER_RE = /((#|\d+)(\/[^"']+)+)/g
+    const POINTER_RE = /[V|A|S]`(#|\d+)([/][^/])*`/g
     let matches
     while ((matches = POINTER_RE.exec(expr)) != null) {
         const pointer = matches[1]

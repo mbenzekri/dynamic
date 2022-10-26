@@ -1,20 +1,49 @@
-import { emptyValue, isEmpty, isPrimitive } from "./types";
+import { calculateSummary } from "./default";
+import { isPrimitive } from "./types";
 import { TYPE, META } from "./types";
-export function JsonType(value) {
-    if (typeof value == "number")
-        return "number";
-    if (typeof value == "string")
-        return "string";
-    if (typeof value == "boolean")
-        return "boolean";
-    if (Array.isArray(value))
-        return "array";
-    if (value != null)
-        return "object";
-    if (value === null)
-        return "null";
-    return "undefined";
-}
+export const NOLOG = {
+    log: (_m, ..._o) => { undefined; },
+    warn: (_m, ..._o) => undefined,
+    error: (_m, ..._o) => undefined,
+    debug: (_m, ..._o) => undefined,
+};
+export const LOGGER = new class {
+    constructor() {
+        this.isOn = true;
+    }
+    log(m, ...o) { this.isOn ? console.log(`DYNAMIC: ${m}`, ...o) : undefined; }
+    warn(m, ...o) { this.isOn ? console.log(`DYNAMIC: ${m}`, ...o) : undefined; }
+    error(m, ...o) { this.isOn ? console.log(`DYNAMIC: ${m}`, ...o) : undefined; }
+    debug(m, ...o) { this.isOn ? console.log(`DYNAMIC: ${m}`, ...o) : undefined; }
+};
+globalThis.nvl = function nvl(strarr, ...valarr) {
+    const all = [];
+    strarr.forEach((str, i) => (i == 0)
+        ? all.push(str)
+        : all.push(valarr[i - 1] == null ? '' : valarr[i - 1], str));
+    return all.join('');
+};
+globalThis.V = function (strarr, ...valarr) {
+    const all = [];
+    strarr.forEach((str, i) => (i == 0)
+        ? all.push(str)
+        : all.push(valarr[i - 1] == null ? '' : valarr[i - 1], str));
+    return all.join('');
+};
+globalThis.A = function (strarr, ...valarr) {
+    const all = [];
+    strarr.forEach((str, i) => (i == 0)
+        ? all.push(str)
+        : all.push(valarr[i - 1] == null ? '' : valarr[i - 1], str));
+    return all.join('');
+};
+globalThis.S = function (strarr, ...valarr) {
+    const all = [];
+    strarr.forEach((str, i) => (i == 0)
+        ? all.push(str)
+        : all.push(valarr[i - 1] == null ? '' : valarr[i - 1], str));
+    return all.join('');
+};
 export function JsonCopy(value) {
     return JSON.parse(JSON.stringify(value));
 }
@@ -46,7 +75,7 @@ export function walkSchema(schema, actions, parent, propname) {
             action(schema, parent, propname);
         }
         catch (e) {
-            console.error([
+            LOGGER.error([
                 `Error while compiling schema ${String(e)}`,
                 `action: ${action.name}`,
                 `schema: ${pointerSchema(parent, propname)}`
@@ -79,11 +108,11 @@ export const walkDynJson = (djs, dsch, actions, pdjs, key) => {
             action(djs, dsch, pdjs, key);
         }
         catch (e) {
-            console.error(`Error while compiling data ${String(e)}\naction: ${action.name}\n at: ${pointerData(pdjs, key)}`);
+            LOGGER.error(`Error while compiling data ${String(e)}\naction: ${action.name}\n at: ${pointerData(pdjs, key)}`);
         }
     }
     if (djs[TYPE] == "array") {
-        if (dsch.composed) {
+        if (dsch.isComposed) {
             djs.forEach((item, index) => {
                 var _a, _b, _c, _d, _e, _f;
                 const composition = (_f = (_d = (_b = (_a = dsch.items) === null || _a === void 0 ? void 0 : _a.oneOf) !== null && _b !== void 0 ? _b : (_c = dsch.items) === null || _c === void 0 ? void 0 : _c.anyOf) !== null && _d !== void 0 ? _d : (_e = dsch.items) === null || _e === void 0 ? void 0 : _e.allOf) !== null && _f !== void 0 ? _f : [];
@@ -143,7 +172,7 @@ export function DynValue(value, schema, parent, key) {
         Object.defineProperty(result, META, { value: {} });
         return new Proxy(result, {
             get(target, key) {
-                //console.log(`Get on "${target[META].pointer}"`)   
+                //LOGGER.log(`Get on "${target[META].pointer}"`)   
                 // FIX --- following fix error  calls to valueOf() over primitive (Number,String, Boolean)
                 // TypeError: Number.prototype.valueOf requires that 'this' be a Number
                 if (key === "valueOf" || key === Symbol.toPrimitive) {
@@ -159,7 +188,7 @@ export function DynValue(value, schema, parent, key) {
             },
             set(target, key, value) {
                 const dynjson = DynValue(value, target[META].schema, target[META].parent, target[META].key);
-                //console.log(`Set on "${target[META].pointer}"`)   
+                //LOGGER.log(`Set on "${target[META].pointer}"`)   
                 return Reflect.set(target, key, dynjson, target);
             }
         });
@@ -170,25 +199,6 @@ export function DynValue(value, schema, parent, key) {
     ], parent, key);
     return dynjson;
 }
-export function calculateDefault(schema, parent, key) {
-    switch (true) {
-        case schema.const !== null:
-            return schema.const;
-        case schema.default != null:
-            return DynValue(schema.default, schema, parent, key);
-        case schema.main === 'object': {
-            const dynobj = DynValue({}, schema, parent, key);
-            schema.properties && Object.entries(schema.properties).forEach(([pname, pschema]) => {
-                dynobj[pname] = calculateDefault(pschema, dynobj, pname);
-            });
-            return dynobj;
-        }
-        case schema.main === 'array':
-            return DynValue([], schema, parent, key);
-        default:
-    }
-    return DynValue(emptyValue(schema), schema, parent, key);
-}
 export function schemaOf(pointer, root, current) {
     var _a;
     const sptr = splitPointer(pointer);
@@ -197,7 +207,7 @@ export function schemaOf(pointer, root, current) {
         for (let i = 0; i < sptr.upsteps; i++)
             base = base === null || base === void 0 ? void 0 : base.parent;
         if (!base) {
-            console.error(`in context ${current.pointer} enable to dereference pointer ${pointer} (not enough ascendant')`);
+            LOGGER.error(`in context ${current.pointer} enable to dereference pointer ${pointer} (not enough ascendant')`);
             return;
         }
     }
@@ -205,7 +215,7 @@ export function schemaOf(pointer, root, current) {
         const prev = base;
         base = (token === '*') ? base.items : (_a = base.properties) === null || _a === void 0 ? void 0 : _a[token];
         if (!base) {
-            console.error(`in context ${current.pointer} enable to dereference pointer ${pointer}(property '${token}' not found in ${prev.pointer})`);
+            LOGGER.error(`in context ${current.pointer} enable to dereference pointer ${pointer}(property '${token}' not found in ${prev.pointer})`);
             return;
         }
     }
@@ -232,44 +242,6 @@ export function valueOf(pointer, root, current) {
     }
     return base;
 }
-export function calculateSummary(schema, value, $f) {
-    var _a, _b, _c, _d, _e;
-    if (schema == null || isEmpty(value))
-        return '~';
-    if (schema.summary)
-        return schema[Symbol('summary')].eval(value);
-    if (schema.isEnum && schema.oneOf)
-        return String((_b = (_a = schema.oneOf.find((item) => item.const === value)) === null || _a === void 0 ? void 0 : _a.title) !== null && _b !== void 0 ? _b : value);
-    if (schema.isEnum && schema.anyOf)
-        return String((_d = (_c = schema.anyOf.find((item) => item.const === value)) === null || _c === void 0 ? void 0 : _c.title) !== null && _d !== void 0 ? _d : value);
-    if (schema.reference) {
-        const refenum = schema[Symbol('reference')].eval(value);
-        if (refenum && refenum.refname && Array.isArray(refenum.refarray)) {
-            const refname = (_e = refenum === null || refenum === void 0 ? void 0 : refenum.refname) !== null && _e !== void 0 ? _e : 'id';
-            const refarray = refenum === null || refenum === void 0 ? void 0 : refenum.refarray;
-            const index = refarray === null || refarray === void 0 ? void 0 : refarray.findIndex((item) => item[refname] === value);
-            if (index >= 0) {
-                const schema = refarray[index][META].schema;
-                return schema === null || schema === void 0 ? void 0 : schema.summary(schema, refarray[index], refarray, index, $f);
-            }
-            return String(value);
-        }
-        return String(value);
-    }
-    if (value[TYPE] == "array") {
-        return value
-            .map((item) => item && schema.items ? calculateSummary(schema.items, item, $f) : item)
-            .filter((v) => v)
-            .join(',');
-    }
-    if (value[TYPE] == "object") {
-        return schema.properties ? Object.keys(schema.properties)
-            .filter((property) => !(value[property] == null))
-            .map((property) => schema.properties ? calculateSummary(schema.properties[property], value[property], $f) : value[property])
-            .join(',') : "";
-    }
-    return String(value);
-}
 export const deref = function (pointer, kind = "value") {
     const value = valueOf(pointer, this.root, this.value);
     if (value == null)
@@ -295,7 +267,7 @@ export class DynFunc {
             return (_a = this.func) === null || _a === void 0 ? void 0 : _a.call(context);
         }
         catch (e) {
-            console.error(`unable to eval property "${this.prop}" error is : \n\t => ${e.toString()}`);
+            LOGGER.error(`unable to eval property "${this.prop}" error is : \n\t => ${e.toString()}`);
             return this.defaut;
         }
     }
@@ -308,13 +280,13 @@ export class DynFunc {
             }
             catch (e) {
                 this.func = () => "";
-                console.error(`unable to compile ${this.prop} expression "${this.expr}" error is: \n\t => ${String(e)}`);
+                LOGGER.log(`unable to compile ${this.prop} expression "${this.expr}" error is: \n\t => ${String(e)}`);
             }
         }
     }
 }
 export function registerDependencies(current, expr) {
-    const POINTER_RE = /((#|\d+)(\/[^"']+)+)/g;
+    const POINTER_RE = /[V|A|S]`(#|\d+)([/][^/])*`/g;
     let matches;
     while ((matches = POINTER_RE.exec(expr)) != null) {
         const pointer = matches[1];

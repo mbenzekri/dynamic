@@ -7787,6 +7787,43 @@ function isEmpty(value) {
 const META = Symbol();
 const TYPE = Symbol();
 
+const LOGGER = new class {
+    constructor() {
+        this.isOn = true;
+    }
+    log(m, ...o) { this.isOn ? console.log(`DYNAMIC: ${m}`, ...o) : undefined; }
+    warn(m, ...o) { this.isOn ? console.log(`DYNAMIC: ${m}`, ...o) : undefined; }
+    error(m, ...o) { this.isOn ? console.log(`DYNAMIC: ${m}`, ...o) : undefined; }
+    debug(m, ...o) { this.isOn ? console.log(`DYNAMIC: ${m}`, ...o) : undefined; }
+};
+globalThis.nvl = function nvl(strarr, ...valarr) {
+    const all = [];
+    strarr.forEach((str, i) => (i == 0)
+        ? all.push(str)
+        : all.push(valarr[i - 1] == null ? '' : valarr[i - 1], str));
+    return all.join('');
+};
+globalThis.V = function (strarr, ...valarr) {
+    const all = [];
+    strarr.forEach((str, i) => (i == 0)
+        ? all.push(str)
+        : all.push(valarr[i - 1] == null ? '' : valarr[i - 1], str));
+    return all.join('');
+};
+globalThis.A = function (strarr, ...valarr) {
+    const all = [];
+    strarr.forEach((str, i) => (i == 0)
+        ? all.push(str)
+        : all.push(valarr[i - 1] == null ? '' : valarr[i - 1], str));
+    return all.join('');
+};
+globalThis.S = function (strarr, ...valarr) {
+    const all = [];
+    strarr.forEach((str, i) => (i == 0)
+        ? all.push(str)
+        : all.push(valarr[i - 1] == null ? '' : valarr[i - 1], str));
+    return all.join('');
+};
 function JsonCopy(value) {
     return JSON.parse(JSON.stringify(value));
 }
@@ -7818,7 +7855,7 @@ function walkSchema(schema, actions, parent, propname) {
             action(schema, parent, propname);
         }
         catch (e) {
-            console.error([
+            LOGGER.error([
                 `Error while compiling schema ${String(e)}`,
                 `action: ${action.name}`,
                 `schema: ${pointerSchema(parent, propname)}`
@@ -7851,11 +7888,11 @@ const walkDynJson = (djs, dsch, actions, pdjs, key) => {
             action(djs, dsch, pdjs, key);
         }
         catch (e) {
-            console.error(`Error while compiling data ${String(e)}\naction: ${action.name}\n at: ${pointerData(pdjs, key)}`);
+            LOGGER.error(`Error while compiling data ${String(e)}\naction: ${action.name}\n at: ${pointerData(pdjs, key)}`);
         }
     }
     if (djs[TYPE] == "array") {
-        if (dsch.composed) {
+        if (dsch.isComposed) {
             djs.forEach((item, index) => {
                 var _a, _b, _c, _d, _e, _f;
                 const composition = (_f = (_d = (_b = (_a = dsch.items) === null || _a === void 0 ? void 0 : _a.oneOf) !== null && _b !== void 0 ? _b : (_c = dsch.items) === null || _c === void 0 ? void 0 : _c.anyOf) !== null && _d !== void 0 ? _d : (_e = dsch.items) === null || _e === void 0 ? void 0 : _e.allOf) !== null && _f !== void 0 ? _f : [];
@@ -7915,7 +7952,7 @@ function DynValue(value, schema, parent, key) {
         Object.defineProperty(result, META, { value: {} });
         return new Proxy(result, {
             get(target, key) {
-                //console.log(`Get on "${target[META].pointer}"`)   
+                //LOGGER.log(`Get on "${target[META].pointer}"`)   
                 // FIX --- following fix error  calls to valueOf() over primitive (Number,String, Boolean)
                 // TypeError: Number.prototype.valueOf requires that 'this' be a Number
                 if (key === "valueOf" || key === Symbol.toPrimitive) {
@@ -7931,7 +7968,7 @@ function DynValue(value, schema, parent, key) {
             },
             set(target, key, value) {
                 const dynjson = DynValue(value, target[META].schema, target[META].parent, target[META].key);
-                //console.log(`Set on "${target[META].pointer}"`)   
+                //LOGGER.log(`Set on "${target[META].pointer}"`)   
                 return Reflect.set(target, key, dynjson, target);
             }
         });
@@ -7950,7 +7987,7 @@ function schemaOf(pointer, root, current) {
         for (let i = 0; i < sptr.upsteps; i++)
             base = base === null || base === void 0 ? void 0 : base.parent;
         if (!base) {
-            console.error(`in context ${current.pointer} enable to dereference pointer ${pointer} (not enough ascendant')`);
+            LOGGER.error(`in context ${current.pointer} enable to dereference pointer ${pointer} (not enough ascendant')`);
             return;
         }
     }
@@ -7958,7 +7995,7 @@ function schemaOf(pointer, root, current) {
         const prev = base;
         base = (token === '*') ? base.items : (_a = base.properties) === null || _a === void 0 ? void 0 : _a[token];
         if (!base) {
-            console.error(`in context ${current.pointer} enable to dereference pointer ${pointer}(property '${token}' not found in ${prev.pointer})`);
+            LOGGER.error(`in context ${current.pointer} enable to dereference pointer ${pointer}(property '${token}' not found in ${prev.pointer})`);
             return;
         }
     }
@@ -7979,7 +8016,7 @@ class DynFunc {
             return (_a = this.func) === null || _a === void 0 ? void 0 : _a.call(context);
         }
         catch (e) {
-            console.error(`unable to eval property "${this.prop}" error is : \n\t => ${e.toString()}`);
+            LOGGER.error(`unable to eval property "${this.prop}" error is : \n\t => ${e.toString()}`);
             return this.defaut;
         }
     }
@@ -7992,13 +8029,13 @@ class DynFunc {
             }
             catch (e) {
                 this.func = () => "";
-                console.error(`unable to compile ${this.prop} expression "${this.expr}" error is: \n\t => ${String(e)}`);
+                LOGGER.log(`unable to compile ${this.prop} expression "${this.expr}" error is: \n\t => ${String(e)}`);
             }
         }
     }
 }
 function registerDependencies(current, expr) {
-    const POINTER_RE = /((#|\d+)(\/[^"']+)+)/g;
+    const POINTER_RE = /[V|A|S]`(#|\d+)([/][^/])*`/g;
     let matches;
     while ((matches = POINTER_RE.exec(expr)) != null) {
         const pointer = matches[1];
@@ -8007,24 +8044,35 @@ function registerDependencies(current, expr) {
     }
 }
 
-function compileSchemaType(schema) {
+// first compilation step to initialise properties : root, parent, pointer, main, null allowed
+function compileSchemaInit(schema, parent, key) {
     var _a;
+    schema.parent = parent;
+    if (parent) {
+        schema.root = parent.root;
+        schema.pointer = `${parent === null || parent === void 0 ? void 0 : parent.pointer}/${key}`;
+    }
+    else {
+        schema.root = schema;
+        schema.pointer = "#";
+    }
     if (Array.isArray(schema.type)) {
         schema.main = (_a = schema.type.find(t => t != "null")) !== null && _a !== void 0 ? _a : "string";
-        schema.nullable = schema.type.some(t => t == "null");
+        schema.allowNull = schema.type.some(t => t == "null");
     }
     else {
         schema.main = schema.type;
-        schema.nullable = schema.type == "null";
+        schema.allowNull = schema.type == "null";
     }
 }
-function compileSchemaDefault(schema, parent, key) {
-    schema.pointer = parent == null ? "#" : `${parent === null || parent === void 0 ? void 0 : parent.pointer}/${key}`;
-    schema.composed = false;
+function compileSchemaDefault(schema) {
+    // init of root, parent, pointer, main, null allowed done by compileSchemaInit 
+    schema.watchers = new Set();
+    schema.isComposed = false;
     schema.isA = false;
     schema.isEnum = false;
-    schema.temporary = false;
-    schema.summary = undefined;
+    schema.isTemporary = false;
+    schema.summary = "${ '' }";
     schema.reference = undefined;
 }
 function compileDynFunc(property, type, defval) {
@@ -8063,13 +8111,16 @@ class Dynamic {
             throw Error((_a = this.validateErrors("Invalid Schema")) === null || _a === void 0 ? void 0 : _a.join("\n"));
         this.data = DynValue(dataJson, compiledSchema);
     }
+    get logger() { return LOGGER; }
+    static logOn() { LOGGER.isOn = true; }
+    static logOff() { LOGGER.isOn = false; }
     compileSchema(schemaJson) {
         const valid = AJV.validateSchema(schemaJson);
         if (valid) {
             // on passe par une copy pour ne pas modifier l'original
             const schema = schemaJson;
             walkSchema(schema, [
-                compileSchemaType,
+                compileSchemaInit,
                 compileSchemaDefault,
                 compileDynFunc('summary', "string", "")
             ]);
@@ -8100,9 +8151,9 @@ class Dynamic {
     deepCopy(value = this.data) {
         const schema = value[META].schema;
         // a temporary value is allways returned as undefined
-        if (schema === null || schema === void 0 ? void 0 : schema.temporary)
+        if (schema === null || schema === void 0 ? void 0 : schema.isTemporary)
             return undefined;
-        const nullval = (schema === null || schema === void 0 ? void 0 : schema.nullable) ? null : undefined;
+        const nullval = (schema === null || schema === void 0 ? void 0 : schema.allowNull) ? null : undefined;
         switch (value[TYPE]) {
             case "undefined": return undefined;
             case "null": return null;

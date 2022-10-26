@@ -2,24 +2,35 @@
 import { SchemaDefinition, SchemaPrimitive } from "./types"
 import { DynFunc } from "./utils"
 
-export function compileSchemaType(schema: SchemaDefinition) {
+
+// first compilation step to initialise properties : root, parent, pointer, main, null allowed
+export function compileSchemaInit(schema: SchemaDefinition, parent?: SchemaDefinition, key?: string) {
+    schema.parent = parent
+    if (parent) {
+        schema.root =  parent.root
+        schema.pointer = `${parent?.pointer}/${key}`
+    } else {
+        schema.root = schema
+        schema.pointer = "#"
+    }
     if (Array.isArray(schema.type)) {
         schema.main = schema.type.find(t => t != "null") ?? "string"
-        schema.nullable = schema.type.some(t => t == "null")
+        schema.allowNull = schema.type.some(t => t == "null")
     } else {
         schema.main = schema.type
-        schema.nullable = schema.type == "null"
+        schema.allowNull = schema.type == "null"
     }
 }
 
-export function compileSchemaDefault(schema: SchemaDefinition, parent?: SchemaDefinition, key?: string) {
+export function compileSchemaDefault(schema: SchemaDefinition) {
 
-    schema.pointer = parent == null ? "#" : `${parent?.pointer}/${key}`
-    schema.composed = false
+    // init of root, parent, pointer, main, null allowed done by compileSchemaInit 
+    schema.watchers = new Set<string>()
+    schema.isComposed = false
     schema.isA = false
     schema.isEnum = false
-    schema.temporary = false
-    schema.summary = undefined
+    schema.isTemporary = false
+    schema.summary = "${ '' }"
     schema.reference = undefined
 }
 
