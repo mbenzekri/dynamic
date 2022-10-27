@@ -7796,6 +7796,9 @@ const LOGGER = new class {
     error(m, ...o) { this.isOn ? console.log(`DYNAMIC: ${m}`, ...o) : undefined; }
     debug(m, ...o) { this.isOn ? console.log(`DYNAMIC: ${m}`, ...o) : undefined; }
 };
+function JsonCopy(value) {
+    return JSON.parse(JSON.stringify(value));
+}
 globalThis.nvl = function nvl(strarr, ...valarr) {
     const all = [];
     strarr.forEach((str, i) => (i == 0)
@@ -7824,9 +7827,6 @@ globalThis.S = function (strarr, ...valarr) {
         : all.push(valarr[i - 1] == null ? '' : valarr[i - 1], str));
     return all.join('');
 };
-function JsonCopy(value) {
-    return JSON.parse(JSON.stringify(value));
-}
 function splitPointer(pointer) {
     const pointerRe = /^(\d+|#)([\/][^\/])*$/;
     if (pointerRe.test(pointer)) {
@@ -7850,6 +7850,7 @@ function pointerData(parent, key) {
     return `${(_a = parent === null || parent === void 0 ? void 0 : parent[META].pointer) !== null && _a !== void 0 ? _a : '#'}${key != null ? `/${key}` : ''}`;
 }
 function walkSchema(schema, actions, parent, propname) {
+    var _a;
     actions.forEach(action => {
         try {
             action(schema, parent, propname);
@@ -7862,25 +7863,10 @@ function walkSchema(schema, actions, parent, propname) {
             ].join("\n"));
         }
     });
-    if (schema.properties) {
-        return Object.entries(schema.properties)
-            .forEach(([name, child]) => walkSchema(child, actions, schema, name));
-    }
-    if (schema.items) {
-        if (schema.items.oneOf)
-            return walkSchema(schema.items, actions, schema, '*');
-        if (schema.items.allOf)
-            return walkSchema(schema.items, actions, schema, '*');
-        if (schema.items.anyOf)
-            return walkSchema(schema.items, actions, schema, '*');
-        return walkSchema(schema.items, actions, schema, '*');
-    }
-    if (schema.oneOf)
-        return schema.oneOf.forEach((child) => walkSchema(child, actions, parent, propname));
-    if (schema.allOf)
-        return schema.allOf.forEach((child) => walkSchema(child, actions, parent, propname));
-    if (schema.anyOf)
-        return schema.anyOf.forEach((child) => walkSchema(child, actions, parent, propname));
+    Object.entries((_a = schema.properties) !== null && _a !== void 0 ? _a : [])
+        .forEach(([name, child]) => walkSchema(child, actions, schema, name));
+    schema.items && walkSchema(schema.items, actions, schema, '*');
+    [schema.oneOf, schema.anyOf, schema.allOf].forEach(schemas => schemas === null || schemas === void 0 ? void 0 : schemas.forEach((child) => walkSchema(child, actions, parent, propname)));
 }
 const walkDynJson = (djs, dsch, actions, pdjs, key) => {
     for (const action of actions) {
@@ -7955,12 +7941,12 @@ function DynValue(value, schema, parent, key) {
                 //LOGGER.log(`Get on "${target[META].pointer}"`)   
                 // FIX --- following fix error  calls to valueOf() over primitive (Number,String, Boolean)
                 // TypeError: Number.prototype.valueOf requires that 'this' be a Number
-                if (key === "valueOf" || key === Symbol.toPrimitive) {
+                if (key === "valueOf" || key === "toString" || key === Symbol.toPrimitive) {
                     if (target[TYPE] == "null")
                         return (hint) => hint == "string" ? "" : null;
                     if (target[TYPE] == "undefined")
                         return (hint) => hint == "string" ? "" : undefined;
-                    if (key === "valueOf")
+                    if (key === "valueOf" || key === "toString")
                         return () => target[key].call(target);
                 }
                 // FIX --- 
@@ -8083,6 +8069,35 @@ function compileDynFunc(property, type, defval) {
         schema[Symbol(property)] = new DynFunc(property, schema, expression, type, defval);
     };
 }
+/** copy $ref by the appropriate copied definition */
+const compileDefinition = (rootSchema) => {
+    const definitionOf = definitionDeref(rootSchema);
+    return (schema) => {
+        if (schema.$ref)
+            return definitionOf(schema);
+    };
+};
+function definitionDeref(rootSchema) {
+    const definitions = rootSchema.definitions;
+    return function (schemaRef) {
+        var _a, _b;
+        debugger;
+        if (!schemaRef.$ref)
+            return;
+        if (!/#\/definitions\/[^/]+$/.test((_a = schemaRef.$ref) !== null && _a !== void 0 ? _a : ""))
+            throw Error(`$ref must have pattern '#/definitions/<name>' is "${schemaRef.$ref}"`);
+        if (!definitions)
+            throw Error(`No definitions in root schema`);
+        const name = (_b = schemaRef.$ref) === null || _b === void 0 ? void 0 : _b.split("/")[2];
+        if (!name || !definitions[name])
+            throw Error(`No definition "${schemaRef.$ref}" found in root schema`);
+        const definition = JsonCopy(definitions[name]);
+        for (const [name, value] of Object.entries(definition)) {
+            if (!(name in schemaRef))
+                schemaRef[name] = value;
+        }
+    };
+}
 
 const AJV = new Ajv({ strictNumbers: false, strictSchema: false, coerceTypes: false, allErrors: true });
 AJV.addFormat("color", /./);
@@ -8120,6 +8135,7 @@ class Dynamic {
             // on passe par une copy pour ne pas modifier l'original
             const schema = schemaJson;
             walkSchema(schema, [
+                compileDefinition(schema),
                 compileSchemaInit,
                 compileSchemaDefault,
                 compileDynFunc('summary', "string", "")

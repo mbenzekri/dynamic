@@ -17,7 +17,7 @@ AJV.addFormat("uri", /./);
 AJV.addFormat("regex", /./);
 import { TYPE, META, isEmpty } from "./types";
 import { DynValue, JsonCopy, LOGGER, walkSchema } from "./utils";
-import { compileDynFunc, compileSchemaDefault, compileSchemaInit } from "./compiler";
+import { compileDefinition, compileDynFunc, compileSchemaDefault, compileSchemaInit } from "./compiler";
 export class Dynamic {
     constructor(schemaJson, dataJson, shared = undefined, options = {}) {
         var _a;
@@ -38,6 +38,7 @@ export class Dynamic {
             // on passe par une copy pour ne pas modifier l'original
             const schema = schemaJson;
             walkSchema(schema, [
+                compileDefinition(schema),
                 compileSchemaInit,
                 compileSchemaDefault,
                 compileDynFunc('summary', "string", "")

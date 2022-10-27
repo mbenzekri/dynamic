@@ -13,7 +13,7 @@ export declare const LOGGER: {
     error(m: any, ...o: any[]): void;
     debug(m: any, ...o: any[]): void;
 };
-export declare function JsonCopy(value: AnyJson): AnyJson;
+export declare function JsonCopy<T extends SchemaDefinition | AnyJson>(value: T): T;
 export declare function walkSchema(schema: SchemaDefinition, actions: WalkSchemaActions, parent?: SchemaDefinition, propname?: string): void;
 export declare const walkDynJson: (djs: DynJson, dsch: SchemaDefinition, actions: WalkDataActions, pdjs?: DynJson, key?: DynKey) => void;
 export declare function DynValue(value: AnyJson, schema: SchemaDefinition, parent?: DynJson, key?: DynKey): DynJson;

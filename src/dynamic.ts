@@ -19,7 +19,7 @@ AJV.addFormat("regex", /./)
 
 import { AnyJson, DynJson, TYPE, META, SchemaDefinition, JsonMap, isEmpty } from "./types"
 import { DynValue, JsonCopy, LOGGER, walkSchema } from "./utils"
-import { compileDynFunc, compileSchemaDefault, compileSchemaInit } from "./compiler"
+import { compileDefinition, compileDynFunc, compileSchemaDefault, compileSchemaInit } from "./compiler"
 
 export class Dynamic {
     readonly data: DynJson
@@ -44,6 +44,7 @@ export class Dynamic {
             // on passe par une copy pour ne pas modifier l'original
             const schema: SchemaDefinition = schemaJson as unknown as SchemaDefinition
             walkSchema(schema, [
+                compileDefinition(schema),
                 compileSchemaInit,
                 compileSchemaDefault,
                 compileDynFunc<string>('summary',"string","")

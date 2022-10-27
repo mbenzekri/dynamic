@@ -6,6 +6,26 @@ Dynamic.logOff()
 
 describe("test Dynamic class", () => {
 
+    it("should resolve definitions", () => {
+        const schema  = { 
+            definitions : {
+                adr: { 
+                    type : "object", 
+                    properties : { 
+                        no: { type : "number"}, 
+                        street:  { type : "string"}, 
+                        city:  { type : "string"}
+                    }
+                }
+            },
+            $ref : "#/definitions/adr"
+        }
+        const data = { }
+        const value: any = new Dynamic(schema, data)
+        expect(value.data[META].schema).toMatchObject(schema.definitions.adr)
+    })
+
+
     it("should throw on invalid Schema", () => {
         const t = () => {
             new Dynamic({ type: "numberZ" }, 12);
@@ -111,13 +131,13 @@ describe("test Dynamic class", () => {
         const value = new Dynamic(schema, { a: 1, b: true, c: "a string", d: null })
         expect(value.toJSON()).toStrictEqual({ a: 1, b: true, c: "a string", d: null });
         expect(value.data["a"][TYPE]).toBe("number");
-        expect(value.data["a"][META]).toStrictEqual({ pointer: "#/a", root: value.data, schema: schema.properties.a, parent: value.data, key: "a" });
+        expect(value.data["a"][META]).toMatchObject({ pointer: "#/a", root: value.data, schema: schema.properties.a, parent: value.data, key: "a" });
         expect(value.data["b"][TYPE]).toBe("boolean");
-        expect(value.data["b"][META]).toStrictEqual({ pointer: "#/b", root: value.data, schema: schema.properties.b, parent: value.data, key: "b" });
+        expect(value.data["b"][META]).toMatchObject({ pointer: "#/b", root: value.data, schema: schema.properties.b, parent: value.data, key: "b" });
         expect(value.data["c"][TYPE]).toBe("string");
-        expect(value.data["c"][META]).toStrictEqual({ pointer: "#/c", root: value.data, schema: schema.properties.c, parent: value.data, key: "c" });
+        expect(value.data["c"][META]).toMatchObject({ pointer: "#/c", root: value.data, schema: schema.properties.c, parent: value.data, key: "c" });
         expect(value.data["d"][TYPE]).toBe("null");
-        expect(value.data["d"][META]).toStrictEqual({ pointer: "#/d", root: value.data, schema: schema.properties.d, parent: value.data, key: "d" });
+        expect(value.data["d"][META]).toMatchObject({ pointer: "#/d", root: value.data, schema: schema.properties.d, parent: value.data, key: "d" });
     })
 
     it("should primitives be used in expression seamlessly", () => {
@@ -151,6 +171,4 @@ describe("test Dynamic class", () => {
         // expect(value.data.u == undefined).toBeTruthy()
     })
 
-
 })
-

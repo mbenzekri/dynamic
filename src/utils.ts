@@ -17,6 +17,10 @@ export const LOGGER = new class {
     debug(m:any,...o:any[]):void { this.isOn ? console.log(`DYNAMIC: ${m}`,...o) : undefined } 
 }
 
+export function JsonCopy<T extends SchemaDefinition | AnyJson>(value: T): T {
+    return JSON.parse(JSON.stringify(value))
+}
+
 /** tag template to replace nullish values by empty string  */
 ;(globalThis as any).nvl = function nvl(strarr: string[], ...valarr: any[]) {
     const all: any[] = []
@@ -53,11 +57,6 @@ export const LOGGER = new class {
     return all.join('')
 };
 
-
-export function JsonCopy(value: AnyJson): AnyJson {
-    return JSON.parse(JSON.stringify(value))
-}
-
 function splitPointer(pointer: string) {
     const pointerRe = /^(\d+|#)([\/][^\/])*$/
     if (pointerRe.test(pointer)) {
@@ -93,19 +92,13 @@ export function walkSchema(schema: SchemaDefinition, actions: WalkSchemaActions,
             ].join("\n"))
         }
     })
-    if (schema.properties) {
-        return Object.entries(schema.properties)
-            .forEach(([name, child]) => walkSchema(child, actions, schema, name))
-    }
-    if (schema.items) {
-        if (schema.items.oneOf) return walkSchema(schema.items, actions, schema, '*')
-        if (schema.items.allOf) return walkSchema(schema.items, actions, schema, '*')
-        if (schema.items.anyOf) return walkSchema(schema.items, actions, schema, '*')
-        return walkSchema(schema.items, actions, schema, '*')
-    }
-    if (schema.oneOf) return schema.oneOf.forEach((child) => walkSchema(child, actions, parent, propname))
-    if (schema.allOf) return schema.allOf.forEach((child) => walkSchema(child, actions, parent, propname))
-    if (schema.anyOf) return schema.anyOf.forEach((child) => walkSchema(child, actions, parent, propname))
+    Object.entries(schema.properties ?? [])
+        .forEach(([name, child]) => walkSchema(child, actions, schema, name))
+
+    schema.items && walkSchema(schema.items, actions, schema, '*');
+    [schema.oneOf,schema.anyOf, schema.allOf].forEach(
+        schemas => schemas?.forEach((child) => walkSchema(child, actions, parent, propname))
+    )
 }
 
 export const walkDynJson = (djs: DynJson, dsch: SchemaDefinition, actions: WalkDataActions, pdjs?: DynJson, key?: DynKey) => {
@@ -172,10 +165,10 @@ export function DynValue(value: AnyJson, schema: SchemaDefinition, parent?: DynJ
                 //LOGGER.log(`Get on "${target[META].pointer}"`)   
                 // FIX --- following fix error  calls to valueOf() over primitive (Number,String, Boolean)
                 // TypeError: Number.prototype.valueOf requires that 'this' be a Number
-                if (key === "valueOf" || key === Symbol.toPrimitive)  {
+                if (key === "valueOf" || key === "toString" || key === Symbol.toPrimitive)  {
                     if (target[TYPE] == "null") return (hint:string) => hint == "string" ? "" : null
                     if (target[TYPE] == "undefined") return (hint:string) => hint == "string" ? "" : undefined
-                    if (key === "valueOf") return () =>  (target as any)[key].call(target)
+                    if (key === "valueOf" || key === "toString" ) return () =>  (target as any)[key].call(target)
                 }
                 // FIX --- 
                 return Reflect.get(target,key,target)
