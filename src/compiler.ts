@@ -1,6 +1,5 @@
-
 import { SchemaDefinition, SchemaPrimitive } from "./types"
-import { DynFunc } from "./utils"
+import { DynFunc, JsonCopy } from "./utils"
 
 
 // first compilation step to initialise properties : root, parent, pointer, main, null allowed
@@ -42,5 +41,29 @@ export function compileDynFunc<T>(property: string, type: SchemaPrimitive | null
     }
 }
 
+/** copy $ref by the appropriate copied definition */
+export const compileDefinition = (rootSchema: SchemaDefinition) => {
+    const definitionOf = definitionDeref(rootSchema)
+    return (schema: SchemaDefinition) => {
+        if (schema.$ref) return definitionOf(schema)
+    }
+}
 
-
+function definitionDeref(rootSchema: SchemaDefinition): (schemaRef: SchemaDefinition) => void {
+    const definitions = rootSchema.definitions
+    return function (schemaRef: SchemaDefinition): void {
+        debugger
+        if (!schemaRef.$ref) return
+        if (! /#\/definitions\/[^/]+$/.test(schemaRef.$ref ?? ""))
+            throw Error(`$ref must have pattern '#/definitions/<name>' is "${schemaRef.$ref}"`)
+        if (!definitions)
+            throw Error(`No definitions in root schema`)
+        const name = schemaRef.$ref?.split("/")[2];
+        if (!name! || !definitions[name])
+            throw Error(`No definition "${schemaRef.$ref}" found in root schema`)
+        const definition = JsonCopy(definitions[name])
+        for (const [name, value] of Object.entries(definition)) {
+            if (!(name in schemaRef)) (schemaRef as any)[name] = value
+        }
+    }
+}

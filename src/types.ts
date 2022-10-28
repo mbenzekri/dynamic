@@ -29,6 +29,7 @@ export type DerefFunc = (this: DynContext, string: string, kind: "value" | "summ
 export type ExprFunc = (this: DynContext) => any
 
 interface DynFunc<T> { eval(value: DynJson): T }
+
 export const SFUNC = {
     isA : Symbol('isA'),
     isTemporary : Symbol('isTemporary'),
