@@ -7796,7 +7796,7 @@ const LOGGER = new class {
     error(m, ...o) { this.isOn ? console.log(`DYNAMIC: ${m}`, ...o) : undefined; }
     debug(m, ...o) { this.isOn ? console.log(`DYNAMIC: ${m}`, ...o) : undefined; }
 };
-globalThis.nvl = function nvl(strarr, ...valarr) {
+globalThis.nvl = function (strarr, ...valarr) {
     const all = [];
     strarr.forEach((str, i) => (i == 0)
         ? all.push(str)
@@ -8002,35 +8002,52 @@ function schemaOf(pointer, root, current) {
     return base;
 }
 class DynFunc {
-    constructor(prop, schema, expr, type, defaut) {
+    constructor(prop, schema, expr, type, defaultValue) {
         this.prop = prop;
         this.expr = expr;
-        this.defaut = defaut;
-        this.compile(schema, type);
+        this.defaultValue = defaultValue;
+        this.compile(schema, type, defaultValue);
     }
     eval(value) {
         var _a;
+        const context = Object.assign({}, value[META]);
+        context.value = isPrimitive(value) ? value.valueOf() : value;
         try {
-            const context = Object.assign({}, value[META]);
-            context.value = isPrimitive(value) ? value.valueOf() : value;
             return (_a = this.func) === null || _a === void 0 ? void 0 : _a.call(context);
         }
         catch (e) {
-            LOGGER.error(`unable to eval property "${this.prop}" error is : \n\t => ${e.toString()}`);
-            return this.defaut;
+            return this.defaultValue;
         }
     }
-    compile(schema, type) {
-        if (type == "string" && typeof this.expr == "string") {
-            registerDependencies(schema, this.expr);
-            try {
-                const code = ` return nvl\`${this.expr}\`; `;
-                this.func = Function(code);
+    compile(schema, type, defval) {
+        // expr is empty then default function
+        if (this.expr == null || typeof this.expr != "string")
+            return;
+        this.func = () => defval;
+        registerDependencies(schema, this.expr);
+        try {
+            switch (type) {
+                case "string":
+                    this.func = Function(` return nvl\`${this.expr}\`; `);
+                    break;
+                case "number":
+                case "integer":
+                    this.func = Function(` return Number(${this.expr}); `);
+                    break;
+                case "boolean":
+                    this.func = Function(` return Boolean(${this.expr}); `);
+                    break;
+                default:
+                    this.func = Function(` return (${this.expr}); `);
+                    break;
             }
-            catch (e) {
-                this.func = () => "";
-                LOGGER.log(`unable to compile ${this.prop} expression "${this.expr}" error is: \n\t => ${String(e)}`);
-            }
+        }
+        catch (e) {
+            LOGGER.log([
+                `Unable to compile ${this.prop} expression "${this.expr}"  \n`,
+                `error is: ${String(e)}`,
+                `Falling out to default value`
+            ].join('\n'));
         }
     }
 }
@@ -8072,7 +8089,7 @@ function compileSchemaDefault(schema) {
     schema.isA = false;
     schema.isEnum = false;
     schema.isTemporary = false;
-    schema.summary = "${ '' }";
+    schema.summary = "${ '- default summary -' }";
     schema.reference = undefined;
 }
 function compileDynFunc(property, type, defval) {
@@ -8122,7 +8139,18 @@ class Dynamic {
             walkSchema(schema, [
                 compileSchemaInit,
                 compileSchemaDefault,
-                compileDynFunc('summary', "string", "")
+                compileDynFunc('summary', "string", "${A`0`}"),
+                compileDynFunc('isA', "boolean", true),
+                compileDynFunc('set', null, null),
+                compileDynFunc('hidden', "boolean", false),
+                compileDynFunc('readonly', "boolean", false),
+                compileDynFunc('mandatory', "boolean", false),
+                compileDynFunc('show', "boolean", true),
+                compileDynFunc('when', "boolean", true),
+                compileDynFunc('sort', null, null),
+                compileDynFunc('onChange', null, null),
+                compileDynFunc('onBegin', null, null),
+                compileDynFunc('onEnd', null, null),
             ]);
             try {
                 this.validateFunc = AJV.compile(schema);

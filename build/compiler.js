@@ -27,7 +27,7 @@ export function compileSchemaDefault(schema) {
     schema.isA = false;
     schema.isEnum = false;
     schema.isTemporary = false;
-    schema.summary = "${ '' }";
+    schema.summary = "${ '- default summary -' }";
     schema.reference = undefined;
 }
 export function compileDynFunc(property, type, defval) {

@@ -7,7 +7,7 @@ import { DynFunc } from "./utils"
 export function compileSchemaInit(schema: SchemaDefinition, parent?: SchemaDefinition, key?: string) {
     schema.parent = parent
     if (parent) {
-        schema.root =  parent.root
+        schema.root = parent.root
         schema.pointer = `${parent?.pointer}/${key}`
     } else {
         schema.root = schema
@@ -30,15 +30,15 @@ export function compileSchemaDefault(schema: SchemaDefinition) {
     schema.isA = false
     schema.isEnum = false
     schema.isTemporary = false
-    schema.summary = "${ '' }"
+    schema.summary = "${ '- default summary -' }"
     schema.reference = undefined
 }
 
-export function compileDynFunc<T>(property: string, type: SchemaPrimitive, defval:T) {
+export function compileDynFunc<T>(property: string, type: SchemaPrimitive | null, defval: T) {
     return (schema: SchemaDefinition, _parent?: SchemaDefinition, _key?: string) => {
         if (typeof (schema as any)[property] === "function") return
         const expression = String((schema as any)[property])
-        schema[Symbol(property)] = new DynFunc<T>(property, schema, expression, type,defval)
+        schema[Symbol(property)] = new DynFunc<T>(property, schema, expression, type, defval)
     }
 }
 

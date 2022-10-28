@@ -28,7 +28,13 @@ export type DynContext = DynMetadata & { value: any }
 export type DerefFunc = (this: DynContext, string: string, kind: "value" | "summary" | "schema") => DynJson
 export type ExprFunc = (this: DynContext) => any
 
-interface DynFunc { eval(value: DynJson): any }
+interface DynFunc<T> { eval(value: DynJson): T }
+export const SFUNC = {
+    isA : Symbol('isA'),
+    isTemporary : Symbol('isTemporary'),
+    summary : Symbol('summary'),
+    reference : Symbol('reference'),
+}
 
 export type SchemaDefinition = {
     type: SchemaType
@@ -91,27 +97,40 @@ export type SchemaDefinition = {
     allowNull: boolean
     /** set of pointers of schema dependant/watching to this schema */ 
     watchers: Set<string>
-    /** true if schema if a composition oneOf, anyOf, allOf  */ 
+    /**  internal boolean expression : true if schema if a composition oneOf, anyOf, allOf  */ 
     isComposed: boolean
-    /** true if schema if an enumeration through "enum" property of by composition (oneOf consts only)  */ 
+    /** internal boolean expression : true if schema if an enumeration through "enum" property of by composition (oneOf consts only)  */ 
     isEnum: boolean 
-    /** true if value is instance of this schema */ 
+    /** boolean expression : when evaluates to true mean the value is instance of this schema */ 
     isA: boolean | string            
     /** true if value is living only during form processing temporary (never returned) */ 
     isTemporary: boolean
-    /** expression to produce a summary for this schema */ 
+    /** string expression:  evaluated to be shown as a summary for this current schema value*/ 
     summary: string
-    /** pointer to and array value wich*/ 
+    /** any expression : calculted and assigned to this current schema value */
+    set: string,
+    /** boolean expression : when evaluates to true the value must be hidden */
+    hidden: string,
+    /** boolean expression : when evaluated to true value is readonly else not (updatable)  */
+    readonly: string,
+    /** boolean expression : when evaluated to true value is mandatory else not */
+    mandatory: string,
+    /** boolean expression : when evaluated to true value must be visible else not */
+    show: string,
+    /** boolean expression : when evaluated to true value is selectable enum item else not */
+    select: string,
+    /** any expression : enum are sorted by value returned bay this expression */
+    sort: string,
+    /** any expression : this expression is evaluated on change of this current schema value */
+    onChange: string,
+    /** any expression : this expression is evaluated on init of this current schema value */
+    onBegin: string,
+    /** any expression : this expression is evaluated on end of this current schema value */
+    onEnd: string,
+    /** pointer to and array value wich */ 
     reference?: {pointer: string, id:string, withAdd: boolean, withModify: boolean }
     // added for compiled functions
-    [name: symbol]: DynFunc
-}
-
-export const SFUNC = {
-    isA : Symbol('isA'),
-    isTemporary : Symbol('isTemporary'),
-    summary : Symbol('summary'),
-    reference : Symbol('reference'),
+    [name: symbol]: DynFunc<any>
 }
 
 export type DynKey = number | string

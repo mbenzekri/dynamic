@@ -40,7 +40,18 @@ export class Dynamic {
             walkSchema(schema, [
                 compileSchemaInit,
                 compileSchemaDefault,
-                compileDynFunc('summary', "string", "")
+                compileDynFunc('summary', "string", "${A`0`}"),
+                compileDynFunc('isA', "boolean", true),
+                compileDynFunc('set', null, null),
+                compileDynFunc('hidden', "boolean", false),
+                compileDynFunc('readonly', "boolean", false),
+                compileDynFunc('mandatory', "boolean", false),
+                compileDynFunc('show', "boolean", true),
+                compileDynFunc('when', "boolean", true),
+                compileDynFunc('sort', null, null),
+                compileDynFunc('onChange', null, null),
+                compileDynFunc('onBegin', null, null),
+                compileDynFunc('onEnd', null, null),
             ]);
             try {
                 this.validateFunc = AJV.compile(schema);

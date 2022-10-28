@@ -2,56 +2,49 @@ import { calculateSummary } from "./default";
 import { DynJson, DynKey, DynContext, ExprFunc, DerefFunc, SchemaPrimitive, isPrimitive } from "./types"
 import { TYPE, META, AnyJson, SchemaDefinition, WalkDataActions, WalkSchemaActions } from "./types"
 
-export const NOLOG = { 
-    log: (_m:any,..._o:any[]):void => {undefined}, 
-    warn: (_m:any,..._o:any[]):void => undefined, 
-    error: (_m:any,..._o:any[]):void => undefined, 
-    debug: (_m:any,..._o:any[]):void => undefined, 
-}
-
 export const LOGGER = new class {
     isOn = true
-    log(m:any,...o:any[]):void { this.isOn ? console.log(`DYNAMIC: ${m}`,...o) : undefined } 
-    warn(m:any,...o:any[]):void { this.isOn ? console.log(`DYNAMIC: ${m}`,...o) : undefined } 
-    error(m:any,...o:any[]):void { this.isOn ? console.log(`DYNAMIC: ${m}`,...o) : undefined } 
-    debug(m:any,...o:any[]):void { this.isOn ? console.log(`DYNAMIC: ${m}`,...o) : undefined } 
+    log(m: any, ...o: any[]): void { this.isOn ? console.log(`DYNAMIC: ${m}`, ...o) : undefined }
+    warn(m: any, ...o: any[]): void { this.isOn ? console.log(`DYNAMIC: ${m}`, ...o) : undefined }
+    error(m: any, ...o: any[]): void { this.isOn ? console.log(`DYNAMIC: ${m}`, ...o) : undefined }
+    debug(m: any, ...o: any[]): void { this.isOn ? console.log(`DYNAMIC: ${m}`, ...o) : undefined }
 }
 
-/** tag template to replace nullish values by empty string  */
-;(globalThis as any).nvl = function nvl(strarr: string[], ...valarr: any[]) {
-    const all: any[] = []
-    strarr.forEach((str, i) => (i == 0)
-        ? all.push(str)
-        : all.push(valarr[i - 1] == null ? '' : valarr[i - 1], str))
-    return all.join('')
-}
+    /** tag template to replace nullish values by empty string  */
+    ; (globalThis as any).nvl = function (strarr: string[], ...valarr: any[]) {
+        const all: any[] = []
+        strarr.forEach((str, i) => (i == 0)
+            ? all.push(str)
+            : all.push(valarr[i - 1] == null ? '' : valarr[i - 1], str))
+        return all.join('')
+    }
 
-/** tag template to resolve pointer access to value */
-;(globalThis as any).V = function(strarr: string[], ...valarr: any[]) {
-    const all: any[] = []
-    strarr.forEach((str, i) => (i == 0)
-        ? all.push(str)
-        : all.push(valarr[i - 1] == null ? '' : valarr[i - 1], str))
-    return all.join('')
-}
+    /** tag template to resolve pointer access to value */
+    ; (globalThis as any).V = function (strarr: string[], ...valarr: any[]) {
+        const all: any[] = []
+        strarr.forEach((str, i) => (i == 0)
+            ? all.push(str)
+            : all.push(valarr[i - 1] == null ? '' : valarr[i - 1], str))
+        return all.join('')
+    }
 
-/** tag template to resolve pointer access to abstract */
-;(globalThis as any).A = function(strarr: string[], ...valarr: any[]) {
-    const all: any[] = []
-    strarr.forEach((str, i) => (i == 0)
-        ? all.push(str)
-        : all.push(valarr[i - 1] == null ? '' : valarr[i - 1], str))
-    return all.join('')
-}
+    /** tag template to resolve pointer access to abstract */
+    ; (globalThis as any).A = function (strarr: string[], ...valarr: any[]) {
+        const all: any[] = []
+        strarr.forEach((str, i) => (i == 0)
+            ? all.push(str)
+            : all.push(valarr[i - 1] == null ? '' : valarr[i - 1], str))
+        return all.join('')
+    }
 
-/** tag template to resolve pointer access to schema */
-;(globalThis as any).S = function(strarr: string[], ...valarr: any[]) {
-    const all: any[] = []
-    strarr.forEach((str, i) => (i == 0)
-        ? all.push(str)
-        : all.push(valarr[i - 1] == null ? '' : valarr[i - 1], str))
-    return all.join('')
-};
+    /** tag template to resolve pointer access to schema */
+    ; (globalThis as any).S = function (strarr: string[], ...valarr: any[]) {
+        const all: any[] = []
+        strarr.forEach((str, i) => (i == 0)
+            ? all.push(str)
+            : all.push(valarr[i - 1] == null ? '' : valarr[i - 1], str))
+        return all.join('')
+    };
 
 
 export function JsonCopy(value: AnyJson): AnyJson {
@@ -158,7 +151,7 @@ function setMeta(data: DynJson, schema: SchemaDefinition, parent?: DynJson, key?
 
 export function DynValue(value: AnyJson, schema: SchemaDefinition, parent?: DynJson, key?: DynKey) {
     function DynCtor(value: AnyJson): DynJson {
-        let [type,result] = ["undefined",{} as DynJson]
+        let [type, result] = ["undefined", {} as DynJson]
         if (value === null) [type, result] = ["null", {} as DynJson]
         else if (typeof value == "string") [type, result] = ["string", new String(value) as DynJson]
         else if (typeof value == "number") [type, result] = ["number", new Number(value) as DynJson]
@@ -167,23 +160,23 @@ export function DynValue(value: AnyJson, schema: SchemaDefinition, parent?: DynJ
         else if (value != null) [type, result] = ["object", Object.keys(value).reduce((obj, key) => { obj[key] = DynCtor(value[key]); return obj }, {} as DynJson)]
         Object.defineProperty(result, TYPE, { value: type })
         Object.defineProperty(result, META, { value: {} })
-        return new Proxy(result,{
-            get(target,key)  {
+        return new Proxy(result, {
+            get(target, key) {
                 //LOGGER.log(`Get on "${target[META].pointer}"`)   
                 // FIX --- following fix error  calls to valueOf() over primitive (Number,String, Boolean)
                 // TypeError: Number.prototype.valueOf requires that 'this' be a Number
-                if (key === "valueOf" || key === Symbol.toPrimitive)  {
-                    if (target[TYPE] == "null") return (hint:string) => hint == "string" ? "" : null
-                    if (target[TYPE] == "undefined") return (hint:string) => hint == "string" ? "" : undefined
-                    if (key === "valueOf") return () =>  (target as any)[key].call(target)
+                if (key === "valueOf" || key === Symbol.toPrimitive) {
+                    if (target[TYPE] == "null") return (hint: string) => hint == "string" ? "" : null
+                    if (target[TYPE] == "undefined") return (hint: string) => hint == "string" ? "" : undefined
+                    if (key === "valueOf") return () => (target as any)[key].call(target)
                 }
                 // FIX --- 
-                return Reflect.get(target,key,target)
+                return Reflect.get(target, key, target)
             },
-            set(target,key,value)  {
-                const dynjson = DynValue(value,target[META].schema,target[META].parent,target[META].key)
+            set(target, key, value) {
+                const dynjson = DynValue(value, target[META].schema, target[META].parent, target[META].key)
                 //LOGGER.log(`Set on "${target[META].pointer}"`)   
-                return Reflect.set(target,key,dynjson,target)
+                return Reflect.set(target, key, dynjson, target)
             }
         })
     }
@@ -240,36 +233,49 @@ export const deref: DerefFunc = function (this: DynContext, pointer: string, kin
     }
 }
 export class DynFunc<T> {
-    private func?: ExprFunc
     readonly prop: string
-    readonly defaut: T
     readonly expr: string | string[]
-    constructor(prop: string, schema: SchemaDefinition, expr: string | string[], type: SchemaPrimitive, defaut: T) {
+    private readonly defaultValue: any
+    private func?: ExprFunc
+    constructor(prop: string, schema: SchemaDefinition, expr: string | string[], type: SchemaPrimitive | null, defaultValue: T) {
         this.prop = prop
         this.expr = expr
-        this.defaut = defaut
-        this.compile(schema,type)
+        this.defaultValue = defaultValue
+        this.compile(schema, type, defaultValue)
     }
     eval(value: DynJson): T {
-        try {
-            const context = Object.assign({} as DynContext, value[META])
-            context.value = isPrimitive(value) ? value.valueOf() : value
-            return this.func?.call(context)
-        } catch (e: any) {
-            LOGGER.error(`unable to eval property "${this.prop}" error is : \n\t => ${e.toString()}`)
-            return this.defaut
-        }
+        const context = Object.assign({} as DynContext, value[META])
+        context.value = isPrimitive(value) ? value.valueOf() : value
+        try { return this.func?.call(context) }
+        catch(e) { return this.defaultValue }
     }
-    compile(schema: SchemaDefinition, type: SchemaPrimitive) {
-        if (type == "string" && typeof this.expr == "string") {
-            registerDependencies(schema, this.expr)
-            try {
-                const code = ` return nvl\`${this.expr}\`; `
-                this.func = Function(code) as ExprFunc
-            } catch (e) {
-                this.func = () => ""
-                LOGGER.log(`unable to compile ${this.prop} expression "${this.expr}" error is: \n\t => ${String(e)}`)
+    compile(schema: SchemaDefinition, type: SchemaPrimitive|null, defval: T) {
+        // expr is empty then default function
+        if (this.expr == null || typeof this.expr != "string") return
+        this.func = () => defval
+        registerDependencies(schema, this.expr)
+        try {
+            switch (type) {
+                case "string":
+                    this.func = Function(` return nvl\`${this.expr}\`; `) as ExprFunc
+                    break;
+                case "number":
+                case "integer":
+                    this.func = Function(` return Number(${this.expr}); `) as ExprFunc
+                    break;
+                case "boolean":
+                    this.func = Function(` return Boolean(${this.expr}); `) as ExprFunc
+                    break;
+                default:
+                    this.func = Function(` return (${this.expr}); `) as ExprFunc
+                    break;
             }
+        } catch (e) {
+            LOGGER.log([
+                `Unable to compile ${this.prop} expression "${this.expr}"  \n`,
+                `error is: ${String(e)}`,
+                `Falling out to default value`
+            ].join('\n'))
         }
     }
 }
