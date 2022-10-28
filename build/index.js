@@ -7799,28 +7799,33 @@ const LOGGER = new class {
 function JsonCopy(value) {
     return JSON.parse(JSON.stringify(value));
 }
-globalThis.nvl = function (strarr, ...valarr) {
+const GLOBAL = globalThis;
+/** tag template to replace nullish values by empty string  */
+GLOBAL.nvl = function (strarr, ...valarr) {
     const all = [];
     strarr.forEach((str, i) => (i == 0)
         ? all.push(str)
         : all.push(valarr[i - 1] == null ? '' : valarr[i - 1], str));
     return all.join('');
 };
-globalThis.V = function (strarr, ...valarr) {
+/** tag template to resolve pointer access to value */
+GLOBAL.V = function (strarr, ...valarr) {
     const all = [];
     strarr.forEach((str, i) => (i == 0)
         ? all.push(str)
         : all.push(valarr[i - 1] == null ? '' : valarr[i - 1], str));
     return all.join('');
 };
-globalThis.A = function (strarr, ...valarr) {
+/** tag template to resolve pointer access to abstract */
+GLOBAL.A = function (strarr, ...valarr) {
     const all = [];
     strarr.forEach((str, i) => (i == 0)
         ? all.push(str)
         : all.push(valarr[i - 1] == null ? '' : valarr[i - 1], str));
     return all.join('');
 };
-globalThis.S = function (strarr, ...valarr) {
+/** tag template to resolve pointer access to schema */
+GLOBAL.S = function (strarr, ...valarr) {
     const all = [];
     strarr.forEach((str, i) => (i == 0)
         ? all.push(str)

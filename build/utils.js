@@ -13,30 +13,33 @@ export const LOGGER = new class {
 export function JsonCopy(value) {
     return JSON.parse(JSON.stringify(value));
 }
+const GLOBAL = globalThis;
 /** tag template to replace nullish values by empty string  */
-;
-globalThis.nvl = function (strarr, ...valarr) {
+GLOBAL.nvl = function (strarr, ...valarr) {
     const all = [];
     strarr.forEach((str, i) => (i == 0)
         ? all.push(str)
         : all.push(valarr[i - 1] == null ? '' : valarr[i - 1], str));
     return all.join('');
 };
-globalThis.V = function (strarr, ...valarr) {
+/** tag template to resolve pointer access to value */
+GLOBAL.V = function (strarr, ...valarr) {
     const all = [];
     strarr.forEach((str, i) => (i == 0)
         ? all.push(str)
         : all.push(valarr[i - 1] == null ? '' : valarr[i - 1], str));
     return all.join('');
 };
-globalThis.A = function (strarr, ...valarr) {
+/** tag template to resolve pointer access to abstract */
+GLOBAL.A = function (strarr, ...valarr) {
     const all = [];
     strarr.forEach((str, i) => (i == 0)
         ? all.push(str)
         : all.push(valarr[i - 1] == null ? '' : valarr[i - 1], str));
     return all.join('');
 };
-globalThis.S = function (strarr, ...valarr) {
+/** tag template to resolve pointer access to schema */
+GLOBAL.S = function (strarr, ...valarr) {
     const all = [];
     strarr.forEach((str, i) => (i == 0)
         ? all.push(str)
