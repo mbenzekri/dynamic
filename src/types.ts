@@ -109,25 +109,25 @@ export type SchemaDefinition = {
     /** string expression:  evaluated to be shown as a summary for this current schema value*/ 
     summary: string
     /** any expression : calculted and assigned to this current schema value */
-    set: string,
+    set?: string,
     /** boolean expression : when evaluates to true the value must be hidden */
     hidden: string,
     /** boolean expression : when evaluated to true value is readonly else not (updatable)  */
     readonly: string,
     /** boolean expression : when evaluated to true value is mandatory else not */
     mandatory: string,
-    /** boolean expression : when evaluated to true value must be visible else not */
-    show: string,
+    /** boolean expression : when evaluated to true value pannel must uncollapsed else collapsed */
+    open?: string,
     /** boolean expression : when evaluated to true value is selectable enum item else not */
     select: string,
     /** any expression : enum are sorted by value returned bay this expression */
-    sort: string,
+    sort?: string,
     /** any expression : this expression is evaluated on change of this current schema value */
-    onChange: string,
+    onChange?: string,
     /** any expression : this expression is evaluated on init of this current schema value */
-    onBegin: string,
+    onBegin?: string,
     /** any expression : this expression is evaluated on end of this current schema value */
-    onEnd: string,
+    onEnd?: string,
     /** pointer to and array value wich */ 
     reference?: {pointer: string, id:string, withAdd: boolean, withModify: boolean }
     // added for compiled functions

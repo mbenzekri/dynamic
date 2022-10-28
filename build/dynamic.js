@@ -41,18 +41,24 @@ export class Dynamic {
                 compileDefinition(schema),
                 compileSchemaInit,
                 compileSchemaDefault,
-                compileDynFunc('summary', "string", "${A`0`}"),
                 compileDynFunc('isA', "boolean", true),
+                compileDynFunc('summary', "string", "${A`0`}"),
                 compileDynFunc('set', null, null),
                 compileDynFunc('hidden', "boolean", false),
                 compileDynFunc('readonly', "boolean", false),
                 compileDynFunc('mandatory', "boolean", false),
-                compileDynFunc('show', "boolean", true),
-                compileDynFunc('when', "boolean", true),
+                compileDynFunc('open', "boolean", true),
+                compileDynFunc('select', "boolean", true),
                 compileDynFunc('sort', null, null),
                 compileDynFunc('onChange', null, null),
                 compileDynFunc('onBegin', null, null),
                 compileDynFunc('onEnd', null, null),
+                // specific compiler for : schema.reference ??= undefined
+                // nom	type	description
+                // group	string	permet de fixer le group d'un champs
+                // tab	string	permet de fixer le classeur d'un groupe (le groupe devient onglet)
+                // enumRef	string	enumRef permet de collecter dynamiquement une énumération depuis l'application appelante. La valeur correspond à un identifiant d'énumération, l'attribut options doit contenir un champ 'ref' de type 'function' prenant en paramètre cet identifiant et doit retourner une énumération sous la forme d'un tableau de {"const": valeur, "title": libelle}.
+                // assets	string	liste les types d'éléments sélectionnable sous la forme "attribut@class,..."
             ]);
             try {
                 this.validateFunc = AJV.compile(schema);

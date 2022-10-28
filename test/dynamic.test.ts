@@ -6,46 +6,6 @@ Dynamic.logOff()
 
 describe("test Dynamic class", () => {
 
-    it("should resolve definitions", () => {
-        const schema  = { 
-            definitions : {
-                adr: { 
-                    type : "object", 
-                    properties : { 
-                        no: { type : "number"}, 
-                        street:  { type : "string"}, 
-                        city:  { type : "string"}
-                    }
-                }
-            },
-            $ref : "#/definitions/adr"
-        }
-        const data = { }
-        const value: any = new Dynamic(schema, data)
-        expect(value.data[META].schema).toMatchObject(schema.definitions.adr)
-    })
-
-
-    it("should resolve definitions", () => {
-        const schema  = { 
-            definitions : {
-                adr: { 
-                    type : "object", 
-                    properties : { 
-                        no: { type : "number"}, 
-                        street:  { type : "string"}, 
-                        city:  { type : "string"}
-                    }
-                }
-            },
-            $ref : "#/definitions/adr"
-        }
-        const data = { }
-        const value: any = new Dynamic(schema, data)
-        expect(value.data[META].schema).toMatchObject(schema.definitions.adr)
-    })
-
-
     it("should throw on invalid Schema", () => {
         const t = () => {
             new Dynamic({ type: "numberZ" }, 12);
@@ -190,5 +150,28 @@ describe("test Dynamic class", () => {
         // expect(value.data.n == undefined).toBeFalsy()
         // expect(value.data.u == undefined).toBeTruthy()
     })
+
+    it("should resolve definitions", () => {
+        const schema  = { 
+            definitions : {
+                adr: { 
+                    type : "object", 
+                    properties : { 
+                        no: { type : "number"}, 
+                        street:  { type : "string"}, 
+                        city:  { type : "string"}
+                    }
+                }
+            },
+            $ref : "#/definitions/adr"
+        }
+        const data = { 
+            a: 2,
+            b: 3,
+        }
+        const value: any = new Dynamic(schema, data)
+        expect(value.data[META].schema).toMatchObject(schema.definitions.adr)
+    })
+
 
 })

@@ -24,13 +24,24 @@ export function compileSchemaInit(schema: SchemaDefinition, parent?: SchemaDefin
 export function compileSchemaDefault(schema: SchemaDefinition) {
 
     // init of root, parent, pointer, main, null allowed done by compileSchemaInit 
-    schema.watchers = new Set<string>()
-    schema.isComposed = false
-    schema.isA = false
-    schema.isEnum = false
-    schema.isTemporary = false
-    schema.summary = "${ '- default summary -' }"
-    schema.reference = undefined
+    schema.watchers ??= new Set<string>()
+    schema.isComposed ??= false
+    schema.isEnum ??= false
+    schema.isA ??= false
+    schema.isTemporary ??= false
+    schema.summary ??= "${ '- default summary -' }"
+    schema.set ??= undefined
+    schema.hidden ??= "false"
+    schema.readonly ??= "false"
+    schema.mandatory ??= "false"
+    schema.open ??= undefined
+    schema.select ??= "true"
+    schema.sort ??= undefined
+    schema.onChange = undefined
+    schema.onBegin ??= undefined
+    schema.onEnd ??= undefined
+    schema.reference ??= undefined
+
 }
 
 export function compileDynFunc<T>(property: string, type: SchemaPrimitive | null, defval: T) {

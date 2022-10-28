@@ -21,14 +21,25 @@ export function compileSchemaInit(schema, parent, key) {
     }
 }
 export function compileSchemaDefault(schema) {
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r;
     // init of root, parent, pointer, main, null allowed done by compileSchemaInit 
-    schema.watchers = new Set();
-    schema.isComposed = false;
-    schema.isA = false;
-    schema.isEnum = false;
-    schema.isTemporary = false;
-    schema.summary = "${ '- default summary -' }";
-    schema.reference = undefined;
+    (_a = schema.watchers) !== null && _a !== void 0 ? _a : (schema.watchers = new Set());
+    (_b = schema.isComposed) !== null && _b !== void 0 ? _b : (schema.isComposed = false);
+    (_c = schema.isEnum) !== null && _c !== void 0 ? _c : (schema.isEnum = false);
+    (_d = schema.isA) !== null && _d !== void 0 ? _d : (schema.isA = false);
+    (_e = schema.isTemporary) !== null && _e !== void 0 ? _e : (schema.isTemporary = false);
+    (_f = schema.summary) !== null && _f !== void 0 ? _f : (schema.summary = "${ '- default summary -' }");
+    (_g = schema.set) !== null && _g !== void 0 ? _g : (schema.set = undefined);
+    (_h = schema.hidden) !== null && _h !== void 0 ? _h : (schema.hidden = "false");
+    (_j = schema.readonly) !== null && _j !== void 0 ? _j : (schema.readonly = "false");
+    (_k = schema.mandatory) !== null && _k !== void 0 ? _k : (schema.mandatory = "false");
+    (_l = schema.open) !== null && _l !== void 0 ? _l : (schema.open = undefined);
+    (_m = schema.select) !== null && _m !== void 0 ? _m : (schema.select = "true");
+    (_o = schema.sort) !== null && _o !== void 0 ? _o : (schema.sort = undefined);
+    schema.onChange = undefined;
+    (_p = schema.onBegin) !== null && _p !== void 0 ? _p : (schema.onBegin = undefined);
+    (_q = schema.onEnd) !== null && _q !== void 0 ? _q : (schema.onEnd = undefined);
+    (_r = schema.reference) !== null && _r !== void 0 ? _r : (schema.reference = undefined);
 }
 export function compileDynFunc(property, type, defval) {
     return (schema, _parent, _key) => {
