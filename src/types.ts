@@ -100,7 +100,7 @@ export type SchemaDefinition = {
     watchers: Set<string>
     /**  internal boolean expression : true if schema if a composition oneOf, anyOf, allOf  */ 
     isComposed: boolean
-    /** internal boolean expression : true if schema if an enumeration through "enum" property of by composition (oneOf consts only)  */ 
+    /** internal boolean expression : true if schema if an enumeration through "enum" property or by "consts" composition */ 
     isEnum: boolean 
     /** boolean expression : when evaluates to true mean the value is instance of this schema */ 
     isA: boolean | string            
@@ -128,8 +128,14 @@ export type SchemaDefinition = {
     onBegin?: string,
     /** any expression : this expression is evaluated on end of this current schema value */
     onEnd?: string,
-    /** pointer to and array value wich */ 
+    /** pointer to and array value which item have to be referenced in this value */ 
     reference?: {pointer: string, id:string, withAdd: boolean, withModify: boolean }
+    /** an external access to reference enum provided by enclosing app (app provide list)*/
+    extEnum?: any, 
+    /** an external access to reference data provided by enclosing app (app provide UX)*/
+    extRef?: any,
+    /** Name of a card panel to group a set of properties */ 
+    group?: {card: string, stack?: string, type?: any},
     // added for compiled functions
     [name: symbol]: DynFunc<any>
 }
